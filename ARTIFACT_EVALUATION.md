@@ -32,8 +32,9 @@ tracked-source claim scan. It deliberately does **not** run
 `dab/bench/formal_games.ts`. Its commands, toolchain versions, recorded source
 revision, committed raw-TLC-log digests, and generated output paths are defined
 in [`docs/paper/evidence-snapshot.v1.json`](docs/paper/evidence-snapshot.v1.json).
-The snapshot is currently explicitly **unreleased**: a maintainer must tag the
-post-repair committed evidence tree before distribution.
+The snapshot is **released**: the annotated tag `evidence-v1` points at the
+recorded evidence revision, tagged after a clean `make paper-evidence` replay
+per the snapshot's two-commit release procedure.
 
 `make reproduce` remains a broader, legacy artifact-orchestration command. It
 records build, claim, proof, test, attack, benchmark, dissertation, and report

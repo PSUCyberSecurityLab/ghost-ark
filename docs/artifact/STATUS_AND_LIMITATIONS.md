@@ -42,8 +42,8 @@ The current scope corrections are material:
   committed raw TLC logs are under `proofs/tla/artifacts/` and
   `proofs/dab/artifacts/`, with exact digests in the evidence snapshot.
 
-The snapshot is explicitly unreleased. A maintainer must commit the repaired
-tree and create an immutable tag before it can serve as a distribution anchor.
+The snapshot is released: the recorded evidence revision carries the annotated
+tag `evidence-v1`, which serves as the distribution anchor.
 
 ---
 

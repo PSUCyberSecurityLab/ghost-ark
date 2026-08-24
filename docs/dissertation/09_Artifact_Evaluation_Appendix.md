@@ -2,8 +2,8 @@
 
 This appendix retains an AEC-oriented route for the dissertation. It is not a
 venue selection. The current reviewer route and its release-bound metadata are
-defined by `docs/paper/evidence-snapshot.v1.json`; that snapshot is currently
-unreleased and must be tagged after the repaired evidence tree is committed.
+defined by `docs/paper/evidence-snapshot.v1.json`; that snapshot is released,
+with the annotated tag `evidence-v1` on its recorded evidence revision.
 
 ## 1. Reproducing the bounded formal evidence (TLA+)
 

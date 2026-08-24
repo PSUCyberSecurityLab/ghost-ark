@@ -6,8 +6,8 @@ Tier: **core**. Full-matrix audit last performed 2026-08-06.
 > described by `docs/paper/evidence-snapshot.v1.json`, not by copied counts in
 > this matrix. `make paper-evidence` is CI-gated and runs E2/E3/E4, TLC,
 > `npm test`, and a tracked-source claim scan. It excludes `dab/bench/**`.
-> The snapshot records an unreleased revision; a maintainer must tag the
-> committed repaired tree before distribution.
+> The snapshot's recorded revision carries the annotated tag `evidence-v1`;
+> the release procedure the snapshot describes has been completed.
 
 > **What "audited" means here, precisely.** Re-executed **2026-08-06**, numbers
 > taken from live output: `npm test` (164 files / 1270 tests, of which 1 file and

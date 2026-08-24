@@ -31,9 +31,9 @@ that retractions and failures remain inspectable rather than silently rewritten.
 | Receipt boundary | `cargo test --locked` in `dab/gateway` and `dab/verifier` | The V1 verifier accepts signed `CERTIFIED` receipts. It does not verify signed abort/rejection receipts, and V1 does not bind an execution target. |
 | Counts | Commands named in the evidence snapshot | Test and scan counts are commit-relative. A green run not below the snapshot is the required condition; no static count here is an "exact" result. |
 
-The snapshot records an unreleased source revision. Before a public release, a
-maintainer must commit the repaired tree and its generated evidence outputs and
-create an immutable tag. Fresh proof summaries and logs under `artifacts/` are
+The snapshot's recorded source revision carries the annotated tag
+`evidence-v1`. The repaired tree, its generated evidence outputs, and the
+manifest naming that tag are committed. Fresh proof summaries and logs under `artifacts/` are
 generated and ignored; the committed raw TLC logs are the paths and digests
 listed in the snapshot.
 

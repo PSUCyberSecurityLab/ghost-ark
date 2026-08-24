@@ -33,8 +33,10 @@ describe("paper evidence snapshot", () => {
     const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: REPO_ROOT, encoding: "utf8" }).trim();
     expect(head).toMatch(/^[0-9a-f]{40}$/u);
     expect(() => assertRecordedEvidenceRevision(manifest)).not.toThrow();
-    expect(manifest.snapshot.tag).toBeNull();
-    expect(manifest.snapshot.tag_status).toBe("unreleased");
+    // assertRecordedEvidenceRevision above already verifies that this tag
+    // exists and points at the recorded evidence revision.
+    expect(manifest.snapshot.tag).toBe("evidence-v1");
+    expect(manifest.snapshot.tag_status).toBe("tagged");
   });
 
   it("rejects a dirty tracked worktree before a release-style replay", () => {

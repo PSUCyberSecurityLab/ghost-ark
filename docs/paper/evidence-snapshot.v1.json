@@ -4,9 +4,9 @@
     "recorded_at": "2026-08-14",
     "recorded_source_revision": "7afe3931335439d2e2af39a1e2b977d3e1f8ce66",
     "recorded_source_revision_date": "2026-08-13T22:46:21-04:00",
-    "tag": null,
-    "tag_status": "unreleased",
-    "tag_note": "This draft names a clean, reachable evidence revision but no tag. Release uses two commits: first commit and tag the evidence-bearing source revision after a clean replay; then commit this manifest and its generated outputs naming that tagged revision. This file does not claim that a tag exists.",
+    "tag": "evidence-v1",
+    "tag_status": "tagged",
+    "tag_note": "The annotated tag evidence-v1 points at the recorded evidence revision. Per the two-commit release procedure, the revision was tagged on 2026-08-24 after a clean local replay of make paper-evidence, and this manifest with its regenerated outputs was committed afterward naming that tag. The release check verifies that the tag exists and points at the recorded revision.",
     "non_claim": "This snapshot binds recorded local experiments, bounded TLC checks, tests, and claim-scan results to named artifacts and toolchains. It does not prove model safety, semantic truth, compliance, production readiness, deployment correctness, or live AWS behavior."
   },
   "toolchains": {
