@@ -57,6 +57,17 @@ jobs:
           name: ghost-ark-provenance-${{ github.sha }}
           path: artifacts/
       - name: Publish @ghost-ark/kernel-probe to npm with provenance
-        run: npm publish --provenance --access public --workspace @ghost-ark/kernel-probe
+        # A repository v* tag is not necessarily a kernel-probe release. If this
+        # exact version is already on the registry there is nothing to publish,
+        # and npm refuses to republish an existing version — so a repo release
+        # tag would fail here for a package that is correctly up to date.
+        # Publish only a genuinely new version; otherwise say so and succeed.
+        run: |
+          pkg_version="$(node -p "require('./tools/kernel-probe/package.json').version")"
+          if npm view "@ghost-ark/kernel-probe@${pkg_version}" version >/dev/null 2>&1; then
+            echo "kernel-probe ${pkg_version} is already on npm; nothing to publish."
+          else
+            npm publish --provenance --access public --workspace @ghost-ark/kernel-probe
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
