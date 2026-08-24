@@ -30,6 +30,12 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # The gate's release preflight verifies the recorded evidence revision
+          # and its evidence-v1 tag; a shallow, tagless checkout fails it
+          # honestly. Fetch full history and tags.
+          fetch-depth: 0
+          fetch-tags: true
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -122,6 +128,12 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # The image copies the checkout, .git included, so the gate inside it
+          # can verify the evidence revision and its evidence-v1 tag. A shallow
+          # checkout would bake an incomplete history into the image.
+          fetch-depth: 0
+          fetch-tags: true
       - name: Build reviewer image
         run: docker build -f Dockerfile.reviewer -t ghost-ark-reviewer:ci .
       - name: Run paper evidence inside the hermetic image

@@ -84,6 +84,10 @@ WORKDIR /work
 # install. This flag skips the optional-peer check ONLY; it does not alter any
 # resolved version. It is the container analogue of the vitest-timeout
 # accommodation (inventory §7.4) — an environment fix, not a dependency change.
+# The copy includes .git (see .dockerignore): the paper-evidence gate verifies
+# a clean tracked worktree, the recorded evidence revision, and its evidence-v1
+# tag, so the image must carry the repository's real git state. Building from a
+# dirty or shallow checkout produces an image whose gate fails — honestly.
 COPY . .
 RUN npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 

@@ -1,4 +1,10 @@
 # Keep the reviewer build context small and deterministic.
+#
+# .git is deliberately NOT ignored: `make paper-evidence` verifies git state —
+# a clean tracked worktree, the recorded evidence revision in history, and the
+# evidence-v1 tag pointing at it. An image without .git cannot pass its own
+# gate. No tracked file matches any pattern below, so the copied worktree stays
+# byte-consistent with the copied index.
 node_modules
 **/node_modules
 dist
@@ -6,7 +12,6 @@ coverage
 cdk.out
 .cache
 artifacts
-.git
 .terraform
 **/.terraform
 **/.terraform.lock.hcl
