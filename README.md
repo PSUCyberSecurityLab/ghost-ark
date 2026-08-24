@@ -9,6 +9,7 @@ Sciences and Technology, The Pennsylvania State University.*
 
 [![CI](https://github.com/PSUCyberSecurityLab/ghost-ark/actions/workflows/ci.yml/badge.svg)](https://github.com/PSUCyberSecurityLab/ghost-ark/actions/workflows/ci.yml)
 [![Artifacts](https://github.com/PSUCyberSecurityLab/ghost-ark/actions/workflows/artifacts-verify.yml/badge.svg)](https://github.com/PSUCyberSecurityLab/ghost-ark/actions/workflows/artifacts-verify.yml)
+[![Paper evidence](https://github.com/PSUCyberSecurityLab/ghost-ark/actions/workflows/artifact.yml/badge.svg)](https://github.com/PSUCyberSecurityLab/ghost-ark/actions/workflows/artifact.yml)
 [![npm](https://img.shields.io/npm/v/%40ghost-ark%2Fkernel-probe?label=kernel-probe)](https://www.npmjs.com/package/@ghost-ark/kernel-probe)
 [![License](https://img.shields.io/badge/license-MIT-black)](./LICENSE)
 [![Evidence](https://img.shields.io/badge/evidence-local%20%26%20synth%20only-b8690c)](./docs/artifact/CI_COVERAGE.md)
@@ -37,9 +38,19 @@ compliant, or correct. Not post-quantum secure. Not hardened for deployment. Gho
 evaluates the *identifiability structure* of evidence, never the meaning of what the evidence
 describes. Every non-claim is mechanically enforced — see [Claim discipline](#8-claim-discipline--how-to-read-this-repository-adversarially).
 
+> **The manuscript.** The systems-track paper on the transactional control plane lives in
+> this repository: [source](./docs/paper/main.tex) · [PDF](./docs/paper/main.pdf) ·
+> [how its numbers are pinned](./docs/paper/README.md). Every empirical macro in the paper
+> is generated from one manifest,
+> [`evidence-snapshot.v1.json`](./docs/paper/evidence-snapshot.v1.json), and
+> `make paper-evidence` replays the entire evidence base behind it — E2/E3/E4, TLC, the
+> full test suite, and a tracked-source claim scan — failing closed if any stage drifts.
+> An interactive, explicitly non-evidential companion:
+> [the Design Observatory](./docs/paper/OBSERVATORY.md).
+
 ---
 
-## Start here — five doors, one hop each
+## Start here — six doors, one hop each
 
 | | Question | Where it is answered |
 |:--|:---|:---|
@@ -48,6 +59,7 @@ describes. Every non-claim is mechanically enforced — see [Claim discipline](#
 | 3 | **What is *not* claimed?** | [non-claims.md](./docs/compliance/non-claims.md), enforced by `npm run scan:claims` |
 | 4 | **What is unverified, and what can rot silently?** | [CI_COVERAGE.md](./docs/artifact/CI_COVERAGE.md) · [STATUS_AND_LIMITATIONS.md](./docs/artifact/STATUS_AND_LIMITATIONS.md) |
 | 5 | **What is useful without trusting this project at all?** | [kernel-probe](./tools/kernel-probe/README.md) — one file, no install, nothing from this repository |
+| 6 | **What does the manuscript claim, and what pins its numbers?** | [docs/paper/](./docs/paper/README.md) — the paper, its evidence snapshot, and the fail-closed `make paper-evidence` replay gate |
 
 Reviewing adversarially? Start instead at the
 [Reviewer Attack Sheet](./docs/artifact/REVIEWER_ATTACK_SHEET.md): the ten sharpest questions
@@ -391,8 +403,8 @@ flowchart TB
     subgraph I2["Instrument 2 — DAB speculative-execution gateway"]
         direction TB
         B1["dab/ — Rust gateway and verifier"]
-        B2["DAB V1 local socket path: payload binding + replay ledger\nOCC and semantic gates are specified helpers"]
-        B3["evidence tier: local; CERTIFIED path has socket E2E\nsee DAB runtime status"]
+        B2["DAB V1 local socket path: payload binding + replay ledger<br/>OCC and semantic gates are specified helpers"]
+        B3["evidence tier: local; CERTIFIED path has socket E2E<br/>see DAB runtime status"]
         B1 --> B2 --> B3
     end
 
@@ -601,6 +613,14 @@ claim scan):
 make paper-evidence
 ```
 
+The cheap preflight for the same gate — verifies the tracked snapshot, its
+generated outputs, and the committed proof-log digests without replaying any
+experiment:
+
+```bash
+make paper-evidence-check
+```
+
 The broader legacy artifact report, which does **not** rerun E2/E3/E4 and may
 record quarantined DAB benchmark material, is separate and is not a manuscript
 reproduction command:
@@ -708,6 +728,7 @@ not imply deployed-environment operation.
   [ARTIFACT_EVALUATION.md](./ARTIFACT_EVALUATION.md) — claim-to-command map and stage report.
 - **Reporting a vulnerability?** [SECURITY.md](./SECURITY.md).
 - **Citing this?** [CITATION.cff](./CITATION.cff). Please cite the software, and read the
-  abstract's scope paragraph before citing it as evidence for a security property.
+  abstract's scope paragraph before citing it as evidence for a security property. The
+  manuscript and the snapshot that pins its numbers are under [docs/paper/](./docs/paper/README.md).
 
 Licensed under the [MIT License](./LICENSE).
