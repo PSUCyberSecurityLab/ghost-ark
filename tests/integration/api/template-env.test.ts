@@ -18,7 +18,13 @@ type CfnTemplate = {
   Resources: Record<string, CfnResource>;
 };
 
-const cdkSynthTimeoutMs = 60_000;
+// This hook runs TWO sequential CDK app synths (prod + dev), so its budget
+// must be roughly double the suite-wide single-test budget and load-tolerant
+// besides: measured 15.5s in isolation, it twice exceeded 60s on 2026-08-24
+// under a saturated worker pool while every test in the file passes unloaded.
+// Same reasoning as vitest.config.ts's testTimeout note: the cost here is CDK
+// synthesis, not the assertions, and a red gate must mean "broken", not "busy".
+const cdkSynthTimeoutMs = 180_000;
 const expectedApiLambdaCount = 5;
 
 const templateCache = new Map<string, CfnTemplate>();
