@@ -1,6 +1,6 @@
 # Response to the Joint USENIX/OSDI Program Committee Referees
 
-> **Provenance note (repository-internal).** This letter is a rehearsal artifact: it responds to the adversarial-committee audit rounds recorded in this repository, and the venue framing is illustrative. It is retained because every factual claim below is bound to committed evidence paths that a skeptical reader can replay (`scripts/run-proofs.sh`, `make attack`). Claims are stated with their bounds; open items are disclosed as open.
+> **Provenance note (repository-internal).** This letter is a rehearsal artifact: it responds to the adversarial-committee audit rounds recorded in this repository, and the venue framing is illustrative. It is retained because factual claims below name committed evidence paths that a skeptical reader can replay (`scripts/run-proofs.sh`, E3/E4, and the DAB socket E2E). `make attack` and `dab/bench/` are quarantined, not current evidence. Claims are stated with their bounds; open items are disclosed as open. The current DAB runtime boundary is [`DAB_RUNTIME_STATUS.md`](../architecture/DAB_RUNTIME_STATUS.md).
 
 We thank the reviewers for their rigorous and insightful critique of the Ghost-Ark architecture. This letter addresses the specific concerns raised during the evaluation pipeline: namely, the nomenclature, the liveness properties under concurrent verification, and the completeness of our TLA+ safety proofs.
 
@@ -39,9 +39,20 @@ An explicit `Terminating` step was added so TLC's deadlock check covers the scen
 To preserve liveness while enforcing serializability, we specify a **Read-Set Projection Operator ($\pi_R$)** in the validation phase. Instead of checking the global state, the Gateway Reference Monitor projects the state check onto the exact data dependencies (URIs, DB keys, or file paths) queried by the agent during the speculative phase. Unrelated concurrent mutations can proceed, and the OCC Gate only aborts if the specific projected state has shifted:
 $$ \mathcal{H}(\pi_R(\sigma_{now})) == \mathcal{H}(\pi_R(\sigma_0)) $$
 
-**Implementation status, stated precisely:** $\pi_R$ and the OCC gate are formalized in [STM_ISOLATION_MAPPING.md](STM_ISOLATION_MAPPING.md) §4; the semantic-gate bound arithmetic is implemented and unit-tested (`evaluateSemanticGate` in `packages/receipt-schema/src/semanticAuditReceipt.ts`); the read-set projection is **not yet integrated** into the enforcement runtime. We therefore claim that the design answers the starvation objection at the specification level, and we do not claim a measured liveness result.
+**Implementation status, stated precisely:** $\pi_R$ and the OCC gate are
+formalized in [STM_ISOLATION_MAPPING.md](STM_ISOLATION_MAPPING.md) §4; the OCC
+and semantic-bound helpers are unit-tested; neither is invoked by the Rust DAB
+V1 socket handler. The read-set projection is therefore **not integrated** into
+that runtime, and neither is semantic execution gating. We claim that the
+design answers the starvation objection at the specification level; we do not
+claim serializability, conflict-abort coverage, semantic blocking, or a
+measured liveness result for the running gateway.
 
-Empirically, the Tier-0 adversarial bench (replay, mutation, Unicode-canonicalization, and concurrency suites plus four formal games; `dab/bench/run_all.ts`) reports an in-suite attacker advantage of $\Delta = 0$ across 10,000 trials at HEAD, with the finite-sample confidence upper bound (≈ $3 \times 10^{-4}$ at that sample size) reported alongside rather than omitted. Reproduce with `make attack`. Per the bench's own non-claim header, this demonstrates detection under the modeled attacker only — it is not evidence about the live gateway TCB — and we cite no transactional commit-latency figures because none are recorded as committed evidence.
+The formerly cited Tier-0 adversarial bench (`dab/bench/run_all.ts`) is
+quarantined: its modeled advantage result is not evidence about the live
+gateway TCB and must not be reproduced through `make attack`. The current
+verifier evidence is E3/E4; it exercises verifier checks and a metamorphic
+guard, not DAB attack resistance or transactional commit latency.
 
 ---
 
@@ -49,14 +60,15 @@ Empirically, the Tier-0 adversarial bench (replay, mutation, Unicode-canonicaliz
 *Referees questioned how Ghost-Ark protects against emerging threat vectors like Adaptive Agentic Worms that dynamically generate exploits during multi-turn reasoning.*
 
 **Response:**
-Because agentic worms exploit the low marginal cost of LLM reasoning to adaptively scan and propagate, traditional static signatures fail to detect them. Ghost-Ark's design answer is architectural: decouple the reasoning loop from physical execution, so that propagation requires surviving an explicit commit pipeline.
+Because agentic worms exploit the low marginal cost of LLM reasoning to adaptively scan and propagate, traditional static signatures fail to detect them. Ghost-Ark's **specified** design answer is architectural: decouple the reasoning loop from physical execution, so that propagation would require surviving an explicit commit pipeline. The current DAB V1 socket prototype does not implement that pipeline.
 
 If an agent becomes infected and attempts to write a worm payload to a peer node:
-1. **The Ledger Gate** checks the transaction nonce against the active ledger and the spent tombstone set — the behavior verified in the corrected TLA+ model and now implemented in the Rust gateway (see Critique 2).
+1. **The Ledger Gate** checks the transaction nonce against the active ledger and the spent tombstone set — the behavior verified in the corrected TLA+ model and wired into the Rust gateway (see Critique 2).
 2. **The OCC Gate** (specified; implementation status in Critique 3) aborts commit when the projected read-set state has shifted, refusing commits built on stale reads.
-3. **The Semantic Gate** evaluates the cumulative trajectory $\tau$: it computes the Fréchet upper bound on the probability that *any* step has failed — $\min\left(1, \sum_i p_i\right)$ over supplied per-step failure marginals, assuming nothing about independence between steps (implemented and unit-tested). If the bound exceeds policy, it forces a `SpeculativeCollapse`, discarding the speculative modifications before they reach the physical execution layer.
+3. **The Semantic Gate** is specified to evaluate the cumulative trajectory $\tau$: its helper computes the Fréchet upper bound on the probability that *any* step has failed — $\min\left(1, \sum_i p_i\right)$ over supplied per-step failure marginals, assuming nothing about independence between steps. The helper is unit-tested but has no live DAB caller; a policy exceedance therefore does not currently force a `SpeculativeCollapse` in the socket path.
 
-A comparison of the standard pipeline vs. Ghost-Ark's transactional pipeline is modeled below:
+A comparison of the standard pipeline vs. Ghost-Ark's **specified**
+transactional pipeline is modeled below:
 
 ```
 Standard Pipeline:
@@ -77,8 +89,21 @@ Ghost-Ark Pipeline:
 [SpeculativeCollapse] (Reverts Runtime to G_0, Worm Payload Discarded)
 ```
 
-The claim boundary matters here: the semantic gate aggregates the per-step failure scores it is given; it does not itself classify payload semantics. A worm's writes are discarded at the boundary **when the supplied step-failure marginals drive the cumulative bound over policy** — the architecture enforces the collapse mechanics and records the receipt trail; it does not certify any detector's hit rate.
+The claim boundary matters here: the semantic helper aggregates the per-step
+failure scores it is given; it does not itself classify payload semantics. In a
+future runtime that invokes the specified pipeline, a supplied marginal that
+drives the cumulative bound over policy would cause collapse. The shipped DAB
+V1 path does not implement that collapse or a signed rejection receipt, and it
+does not certify any detector's hit rate.
 
 ---
 
-These revisions address the referee critiques within stated bounds: recorded, replayable TLC verification for the nonce-ledger model (baseline clean, mutant violating); a tombstone implementation in the Rust gateway closing the previously disclosed model↔implementation divergence (bounded caveat stated in Critique 2); a specified — and partially implemented — OCC design answering the starvation objection; and a transactional pipeline whose collapse and detection mechanics are exercised by a reproducible Tier-0 adversarial bench. Ghost-Ark's claim boundary is unchanged: it provides cryptographic receipts and bounded governance evidence — what was recorded, signed, policy-bounded, and replayable under verifier rules — not semantic safety.
+These revisions address the referee critiques within stated bounds: recorded,
+replayable TLC verification for the nonce-ledger model (baseline clean, mutant
+violating); a tombstone implementation wired into the Rust gateway (bounded
+caveat stated in Critique 2); and a specified OCC/semantic design that answers
+the starvation objection at the model level. The Tier-0 adversarial bench is
+quarantined and is not evidence for collapse or detection mechanics. Ghost-Ark's
+claim boundary is unchanged: it provides cryptographic receipts and bounded
+governance evidence — what was recorded, signed, policy-bounded, and replayable
+under verifier rules — not semantic safety.

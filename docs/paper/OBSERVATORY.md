@@ -1,34 +1,42 @@
-# Ghost-Ark Evidence Observatory
+# Ghost-Ark Design Observatory
 
-`observatory.html` is a self-contained, interactive companion to the
-manuscript: the paper's bounds, gates, and recorded runs made explorable in a
-single page. Open it directly in a browser — no build step, no network, no
-external assets (all CSS/JS inline; nothing is fetched).
+`observatory.html` is a self-contained, interactive **explanatory companion**
+to the manuscript. It is not an evidence artifact, a verifier replay, or a
+runtime invocation, and it must not be cited as the source for a numerical or
+runtime-status claim. Open it directly in a browser — no build step, network,
+or external assets are required (all CSS and JavaScript are inline).
 
-It is **evidence-bound**: every figure is a recorded run from repository HEAD
-(see `README-AE.md` for the claim-to-command map). Two panels are *live* — they
-recompute the real mathematics client-side, with nothing hard-coded:
+For authoritative paper evidence, use these sources instead:
 
-- **The Fréchet envelope** (§4.2): drag the per-step marginal and trajectory
-  length; the independence assumption always sits inside the dependence-free
-  envelope the semantic gate triggers on.
-- **The measured replay window** (§5.5): drag capacity `C` and tombstones `K`;
-  the window follows the measured law `max(0, K − C)`.
+- [`evidence-snapshot.v1.json`](evidence-snapshot.v1.json) binds the recorded
+  source revision, toolchains, raw-proof-log paths, and measured values.
+- [`README-AE.md`](../../README-AE.md) maps each claim to its command and
+  limitation.
+- `make paper-evidence` replays E2, E3, E4, the canonical TLC runner, the
+  full test suite, and the tracked-source claim scan. It deliberately excludes
+  quarantined `dab/bench/` programs.
 
-The rest — the status strip, the three-gate pipeline with per-gate
-implementation status, a real certified-receipt specimen, the TLC state counts,
-the claim→evidence→command table, and the non-claims boundary — mirrors the
-manuscript and `README-AE.md`.
+The sliders calculate the displayed Fréchet and replay-window equations in
+the browser. They illustrate the stated models and recorded replay-window law;
+they do not execute Ghost-Ark components or regenerate evidence.
 
-The page is also published as a private, shareable Artifact. Regenerate the
-standalone from the source with the wrapper used in
-`docs/paper/OBSERVATORY.md` history, or edit `observatory.html` directly (it is
-already a complete document).
+## Runtime boundary shown by the page
 
-## Non-claims (unchanged)
+The specified three-gate architecture is broader than the shipped DAB socket
+prototype. The prototype wires payload-byte binding and the nonce ledger. OCC
+and semantic helpers are unit-tested but are not wired into the gateway path or
+covered by socket E2E evidence. The DAB V1 signer and verifier cover successful
+`CERTIFIED` executions only: replay and mutation responses are unsigned status
+messages, and malformed or execution-failure paths can return no receipt.
 
-The Observatory visualizes recorded evidence and live mathematics; it does not
-add any claim. Semantic safety, live-cloud behavior, production key custody,
-and everything in the manuscript's "Limitations and Non-Claims" remain
-non-claims here too — the boundary panel states them prominently, because the
-boundary is the point.
+The observatory therefore labels the gate diagram as specified architecture,
+not runtime proof, and labels its receipt specimen as an illustration of the
+certified path only.
+
+## Non-claims
+
+Nothing in this companion adds an assurance claim. It does not establish model
+safety, semantic truth, compliance, production readiness, deployment
+correctness, live-cloud behavior, production key custody, or a runtime
+three-gate composition. The snapshot's non-claim and the manuscript's
+limitations remain controlling.

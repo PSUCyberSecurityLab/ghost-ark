@@ -60,8 +60,12 @@ describe("toolchain pin: every acquisition site agrees", () => {
       if (!/tla2tools/u.test(source)) {
         continue;
       }
-      // Any 64-hex literal in a file that fetches tla2tools must be THE digest.
-      for (const found of source.match(/\b[0-9a-f]{64}\b/gu) ?? []) {
+      // Scope digest extraction to the TLA variable. Dockerfile.reviewer also
+      // checksum-verifies exact Node archives; treating every unrelated
+      // SHA-256 literal as a tla2tools pin would make a sound additional pin
+      // look like a proof-toolchain disagreement.
+      for (const match of source.matchAll(/TLA_TOOLS_SHA256=([0-9a-f]{64})/gu)) {
+        const found = match[1] as string;
         if (found !== sha256) {
           disagreements.push(`${path}: digest ${found.slice(0, 8)}… != ${sha256.slice(0, 8)}…`);
         }

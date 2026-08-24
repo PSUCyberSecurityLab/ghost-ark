@@ -1,6 +1,10 @@
 # Ghost-Ark — USENIX Artifact Evaluation orchestration
 #
-# One command for reviewers:   make reproduce
+# Paper-evidence command for reviewers: make paper-evidence
+#
+# `make reproduce` remains a broader legacy artifact roll-up. It invokes
+# quarantined DAB bench material for disclosure, so it is not the manuscript's
+# evidence target.
 #
 # Every target runs REAL commands and reports REAL status. Nothing here
 # manufactures a green result. See docs/artifact/repository_inventory.md for the
@@ -21,7 +25,8 @@ endif
 VITEST_TIMEOUT_MS ?= 60000
 
 .PHONY: help bootstrap lint build proof unit attack benchmark dissertation \
-        artifact-report reproduce ci-check audit clean
+        artifact-report reproduce paper-evidence paper-evidence-check \
+        paper-evidence-render ci-check audit clean
 
 help: ## Show this help
 	@echo "Ghost-Ark Artifact Evaluation — make targets"
@@ -29,7 +34,7 @@ help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 	  | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 	@echo
-	@echo "  Primary entrypoint: make reproduce"
+	@echo "  Paper-evidence entrypoint: make paper-evidence"
 
 bootstrap: ## Install deps ($(PKG_INSTALL)) and fetch the pinned, digest-verified tla2tools.jar
 	@echo "[bootstrap] $(PKG_INSTALL)"
@@ -86,8 +91,17 @@ dissertation: ## Build the dissertation PDF (claim-gated; needs pandoc+latexmk)
 artifact-report: ## Aggregate stage status -> artifacts/reports/aec_summary.{json,md}
 	node tools/artifact/aec-report.mjs
 
-reproduce: ## FULL honest reproduction: build->claims->proof->unit->attack->benchmark->dissertation->report
+reproduce: ## Legacy broad artifact roll-up (includes non-evidential DAB bench disclosure)
 	bash scripts/reproduce.sh
+
+paper-evidence: ## Fail-closed paper gate: E2/E3/E4 -> TLC -> npm test -> tracked claim scan
+	node tools/paper-evidence.mjs --run
+
+paper-evidence-check: ## Verify the tracked paper-evidence snapshot and generated reviewer/manuscript outputs
+	node tools/paper-evidence.mjs --check
+
+paper-evidence-render: ## Regenerate the paper-evidence macro include and reviewer snapshot blocks
+	node tools/paper-evidence.mjs --render
 
 ci-check: ## Deterministic CI gate: lint + claims + proof + unit + attack (no PDF/bench)
 	npm run lint

@@ -1,4 +1,4 @@
-# Status and Limitations — 2026-08-02
+# Status and Limitations — historical record with 2026-08-13 correction
 
 Tier: **core**. This document exists to be used against the project.
 
@@ -9,8 +9,41 @@ external validation, and this repository's own reporting rules forbid exactly
 that shape of claim. What replaces it is §5 — the specific things that are not
 established, stated plainly enough to be checked.
 
-Scale: ~945 tracked files, ~67k lines of TypeScript, ~3k of Rust, 14 TLA+
-specifications, 155 test files / 1,193 tests.
+Repository size, test totals, and scanner totals are commit-relative. The
+release-bound lower-bound test policy and tracked-source scan are recorded in
+`docs/paper/evidence-snapshot.v1.json`; do not read a static count here as an
+exact current result.
+
+---
+
+## 0. Current evidence correction (2026-08-13)
+
+The dated audit narrative below is retained as a record. The current
+reviewer-facing route is `make paper-evidence`, which runs E2/E3/E4, the
+canonical TLC runner, `npm test`, and a tracked-source claim scan. It does not
+run quarantined `dab/bench/**`. `make reproduce` remains a broader generated
+artifact report and is not a manuscript-evidence command.
+
+The current scope corrections are material:
+
+- Formal evidence is six clean baselines and five violating mutants under the
+  stable `tla2tools v1.7.4` SHA-256 pin recorded in the evidence snapshot. Five
+  baseline/mutant pairs gate two-sided claims; `DAB_ExecutionBoundary` is a
+  one-sided baseline with no mutant.
+- The Rust socket prototype wires decoded-payload binding and a nonce ledger
+  with local E2E evidence. OCC/read-set validation and semantic-gate arithmetic
+  are unit-tested helpers, not runtime gates.
+- V1 signatures support independently verified `CERTIFIED` receipts only.
+  Replay and mutation responses have no signature, malformed/oversized/
+  execution-failure paths may emit no receipt, and V1 does not bind an execution
+  target. Therefore no document may claim that every abort is signed or
+  independently replayable.
+- Fresh `artifacts/` summaries and proof logs are generated and ignored. The
+  committed raw TLC logs are under `proofs/tla/artifacts/` and
+  `proofs/dab/artifacts/`, with exact digests in the evidence snapshot.
+
+The snapshot is explicitly unreleased. A maintainer must commit the repaired
+tree and create an immutable tag before it can serve as a distribution anchor.
 
 ---
 

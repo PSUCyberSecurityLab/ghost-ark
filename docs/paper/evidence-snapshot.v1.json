@@ -1,0 +1,274 @@
+{
+  "schema_version": "ghost-ark.paper-evidence-snapshot.v1",
+  "snapshot": {
+    "recorded_at": "2026-08-14",
+    "recorded_source_revision": "7afe3931335439d2e2af39a1e2b977d3e1f8ce66",
+    "recorded_source_revision_date": "2026-08-13T22:46:21-04:00",
+    "tag": null,
+    "tag_status": "unreleased",
+    "tag_note": "This draft names a clean, reachable evidence revision but no tag. Release uses two commits: first commit and tag the evidence-bearing source revision after a clean replay; then commit this manifest and its generated outputs naming that tagged revision. This file does not claim that a tag exists.",
+    "non_claim": "This snapshot binds recorded local experiments, bounded TLC checks, tests, and claim-scan results to named artifacts and toolchains. It does not prove model safety, semantic truth, compliance, production readiness, deployment correctness, or live AWS behavior."
+  },
+  "toolchains": {
+    "node": {
+      "version": "v22.22.3",
+      "major": 22,
+      "npm_version": "10.9.8",
+      "linux_archives": {
+        "x64": {
+          "filename": "node-v22.22.3-linux-x64.tar.xz",
+          "sha256": "2e5d13569282d016861fae7c8f935e741693c269101a5bebcf761a5376d1f99f"
+        },
+        "arm64": {
+          "filename": "node-v22.22.3-linux-arm64.tar.xz",
+          "sha256": "1c4a9933a5e45bc88f54f70b5f91232c127ec49f1a5989d23fb85824c7adf9b7"
+        }
+      }
+    },
+    "rust": {
+      "version": "1.97.1",
+      "recorded_command": "cd dab/gateway && cargo run --release --bin stress"
+    },
+    "java": {
+      "minimum_major": 11,
+      "reviewer_major": 21
+    },
+    "tla": {
+      "version": "v1.7.4",
+      "sha256": "936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88",
+      "tlc_version": "2.19"
+    }
+  },
+  "reproduction": {
+    "target": "make paper-evidence",
+    "commands": {
+      "e2": "npm run experiment:e2 -- --json",
+      "e3": "npm run experiment:e3 -- --json",
+      "e4": "npm run experiment:e4 -- --json",
+      "proofs": "bash scripts/run-proofs.sh",
+      "tests": "npm test",
+      "claim_scan": "node tools/research/check-forbidden-claims.mjs --tracked"
+    },
+    "quarantined_not_run": [
+      "dab/bench/run_all.ts",
+      "dab/bench/performance.ts",
+      "dab/bench/formal_games.ts"
+    ]
+  },
+  "paths": {
+    "macro_include": "docs/paper/evidence-macros.tex",
+    "paper_readme": "docs/paper/README.md",
+    "reviewer_map": "README-AE.md",
+    "generated_proof_summary": "artifacts/proofs/proofs_summary.json",
+    "generated_report": "artifacts/paper-evidence/report.json",
+    "committed_proof_logs": [
+      {
+        "path": "proofs/dab/artifacts/DAB_ExecutionBoundary.tlc.txt",
+        "sha256": "c67b02ef43c612ddfa95458cd7df278dd6683b57a60bfcbfe5907bccecf4751c"
+      },
+      {
+        "path": "proofs/dab/artifacts/DAB_NonceLedger.tlc.txt",
+        "sha256": "234f0819266d65684f1bf7b4b172f7b4314bdce166c5151493e4998ff48862f1"
+      },
+      {
+        "path": "proofs/dab/artifacts/DAB_NonceLedger_Mutant.tlc.txt",
+        "sha256": "7eb6606e4182b6b9d0b59bb481c788eb74af4fe98023a25a94a6c954c2a77f1d"
+      },
+      {
+        "path": "proofs/tla/artifacts/ProvenanceLattice.tlc.txt",
+        "sha256": "d5778df2d656809b5018051071a573cb4369b5698957b891f1b84f2a1f7cf8e6"
+      },
+      {
+        "path": "proofs/tla/artifacts/ProvenanceLatticeMutant.tlc.txt",
+        "sha256": "3fded69db7d4dba8226ce66348424f02c7eb0f6867dcc2ec9c3a51c07d6eefea"
+      },
+      {
+        "path": "proofs/tla/artifacts/SpeculativeCollapse.tlc.txt",
+        "sha256": "bb0e7b637977769fb718012c1ff4ceab82d72977c2f3bb6f3e415f448d1e8a5b"
+      },
+      {
+        "path": "proofs/tla/artifacts/SpeculativeCollapseMutant.tlc.txt",
+        "sha256": "e0482933589c56e510d9cbe818ebb016816747fd4d9d41828ba65b884b221d2b"
+      },
+      {
+        "path": "proofs/tla/artifacts/TenantIsolation.tlc.txt",
+        "sha256": "96686f0ae04998105651e04c6220efa3d09fa62bef45ebc165446489c6ad8468"
+      },
+      {
+        "path": "proofs/tla/artifacts/TenantIsolationMutant.tlc.txt",
+        "sha256": "c258d180cd96343671bc6d3d9679c782b2f1ce4013caa8a2ec8e8cf30a40b0ea"
+      },
+      {
+        "path": "proofs/tla/artifacts/TransportBoundary.tlc.txt",
+        "sha256": "dd615e1250f2cd51aec97a5ec8244670905969c0d8fb4a5da816eeb7a9b32d77"
+      },
+      {
+        "path": "proofs/tla/artifacts/TransportBoundaryMutant.tlc.txt",
+        "sha256": "b1192e53096822340c543734f155a5c8fd30693f0b767ce9d3219e24d54d3bc5"
+      }
+    ]
+  },
+  "e2": {
+    "measured_on": "2026-08-14",
+    "host": "Apple M1, darwin/arm64, 8 CPU, Node v22.22.3",
+    "warmup_iterations": 500,
+    "measured_iterations": 5000,
+    "payload_bytes": 1552,
+    "operations": [
+      {
+        "operation": "json-parse-only",
+        "p50_us": 1.88,
+        "iqr_us": 0.17,
+        "ratio_to_baseline": 1
+      },
+      {
+        "operation": "canonicalize-only",
+        "p50_us": 6.13,
+        "iqr_us": 1.33,
+        "ratio_to_baseline": 3.27
+      },
+      {
+        "operation": "canonicalize-and-digest",
+        "p50_us": 7.5,
+        "iqr_us": 0.58,
+        "ratio_to_baseline": 4
+      },
+      {
+        "operation": "hmac-verify",
+        "p50_us": 9.08,
+        "iqr_us": 1.08,
+        "ratio_to_baseline": 4.84
+      },
+      {
+        "operation": "verifier-full-hmac",
+        "p50_us": 22.21,
+        "iqr_us": 4.04,
+        "ratio_to_baseline": 11.84
+      },
+      {
+        "operation": "verifier-full-rsa-pss",
+        "p50_us": 119.25,
+        "iqr_us": 5.83,
+        "ratio_to_baseline": 63.6
+      }
+    ],
+    "runtime_requirements": {
+      "operation_count": 6,
+      "monotonicity_orderings": 4,
+      "require_no_dropped_operations": true
+    }
+  },
+  "e3": {
+    "measured_on": "2026-08-14",
+    "aggregate": {
+      "successes": 28,
+      "total": 28
+    },
+    "verifier_intrinsic": {
+      "successes": 26,
+      "total": 26
+    },
+    "control_arm": {
+      "successes": 3,
+      "total": 3
+    },
+    "undetected": 0,
+    "documented_boundaries": 2
+  },
+  "e4": {
+    "measured_on": "2026-08-14",
+    "load_bearing_checks": 7,
+    "maximum_all_checks_survivors": 1,
+    "required_tautology_prefix": "PASS:"
+  },
+  "rust_stress": {
+    "measured_on": "2026-07-17",
+    "admissions_and_signatures_per_second": 275415,
+    "fail_closed_rejections_millions_per_second": 10.1,
+    "recorded_output": "dab/roundtrip/RECORDED_CONCURRENT_STRESS.txt",
+    "non_claim": "This is one recorded local throughput run under the named Rust toolchain. It is not a cross-machine, cloud, or production-throughput claim."
+  },
+  "proofs": {
+    "measured_on": "2026-08-12",
+    "baseline_count": 6,
+    "mutant_count": 5,
+    "results": [
+      {
+        "module": "ProvenanceLattice",
+        "expect": "clean",
+        "status": "CLEAN",
+        "distinct_states": 403949
+      },
+      {
+        "module": "ProvenanceLatticeMutant",
+        "expect": "violation",
+        "status": "VIOLATION_REPRODUCED"
+      },
+      {
+        "module": "SpeculativeCollapse",
+        "expect": "clean",
+        "status": "CLEAN",
+        "distinct_states": 529
+      },
+      {
+        "module": "SpeculativeCollapseMutant",
+        "expect": "violation",
+        "status": "VIOLATION_REPRODUCED"
+      },
+      {
+        "module": "TransportBoundary",
+        "expect": "clean",
+        "status": "CLEAN",
+        "distinct_states": 64
+      },
+      {
+        "module": "TransportBoundaryMutant",
+        "expect": "violation",
+        "status": "VIOLATION_REPRODUCED"
+      },
+      {
+        "module": "TenantIsolation",
+        "expect": "clean",
+        "status": "CLEAN",
+        "distinct_states": 149796
+      },
+      {
+        "module": "TenantIsolationMutant",
+        "expect": "violation",
+        "status": "VIOLATION_REPRODUCED"
+      },
+      {
+        "module": "DAB_NonceLedger",
+        "expect": "clean",
+        "status": "CLEAN",
+        "distinct_states": 1321
+      },
+      {
+        "module": "DAB_NonceLedger_Mutant",
+        "expect": "violation",
+        "status": "VIOLATION_REPRODUCED"
+      },
+      {
+        "module": "DAB_ExecutionBoundary",
+        "expect": "clean",
+        "status": "CLEAN",
+        "distinct_states": 51106,
+        "one_sided": true
+      }
+    ]
+  },
+  "tests": {
+    "measured_on": "2026-08-12",
+    "minimum_test_files": 172,
+    "minimum_tests": 1434,
+    "recorded_skipped_files": 1,
+    "recorded_skipped_tests": 9,
+    "reproduction_policy": "The suite must be green and its total test/file counts must not fall below this recorded snapshot. Counts may increase as tests are added."
+  },
+  "claim_scan": {
+    "measured_on": "2026-08-14",
+    "recorded_tracked_scannable_files": 942,
+    "required_violations": 0,
+    "reproduction_policy": "Run against Git-tracked source only for a deterministic snapshot population. The normal working-tree scanner remains broader and may report a different file count."
+  }
+}

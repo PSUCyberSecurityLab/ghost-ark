@@ -3,7 +3,15 @@
 
 This document formally models the Ghost-Ark framework not as an applied perimeter defense, but as a structural Software Transactional Memory (STM) primitive designed to bound non-deterministic (stochastic) compute sequences. By framing LLM context windows and tool-calling trajectories as discrete state-transitions over an isolated environment, we map traditional RDBMS isolation levels directly to AI agent architectures.
 
-> **Status (2026-07-16): research formalization.** Implemented and unit-tested: the semantic-gate cumulative bound (`evaluateSemanticGate` in `packages/receipt-schema/src/semanticAuditReceipt.ts`) and the semantic audit receipt schema. TLC-verified as a bounded model: the ledger gate's tombstone design (`proofs/dab/artifacts/`). Specified here but **not yet implemented** in the enforcement runtime: the OCC gate and the read-set projection $\pi_R$. The Rust gateway ledger retains TTL semantics that diverge from the verified tombstone model — see `docs/artifact/repository_inventory.md` §7.2.
+> **Status (corrected 2026-08-14): research formalization.** The OCC helper
+> (`evaluateOCCGate`) and semantic cumulative-bound helper
+> (`evaluateSemanticGate`) are unit-tested. Neither has a caller in the Rust
+> DAB V1 socket handler. The nonce ledger is wired into that handler and has
+> local socket-E2E evidence; TLC checks a bounded abstraction of its tombstone
+> behavior. The socket path has no ghost replica, read-set projection, semantic
+> execution gate, target-bound receipt, or signed rejection-receipt contract.
+> See [`DAB_RUNTIME_STATUS.md`](../architecture/DAB_RUNTIME_STATUS.md) for the
+> component-level distinction.
 
 ---
 
@@ -17,9 +25,14 @@ This document formally models the Ghost-Ark framework not as an applied perimete
 **The Mechanism:** The agent's state-fork executes within a bounded sandbox (Firecracker/CRIU). It can read environmental data, but its intent to write is buffered in an `intent_pool`. 
 **The Anomaly:** While the sandbox prevents immediate dirty writes, it does not prevent the agent from constructing a logically invalid chain of thought based on stale data. If the external world state $\sigma$ changes during the agent's prolonged reasoning phase, the eventual flush of the `intent_pool` applies stale reasoning to a shifted reality, inducing Write Skew or Phantom Read anomalies.
 
-### 3. Serializable (Optimistic Concurrency Control for Non-Deterministic Compute)
-**The Paradigm:** Ghost-Ark DAB Tier-0 (Declarative Action Binding).
-**The Mechanism:** The framework implements Optimistic Concurrency Control (OCC) over the agentic sequence. The execution trace $\tau$ is isolated in a ghost replica $G(\sigma_0)$. The `VerifyAndBind` operation acts as the two-phase commit (2PC) validation phase.
+### 3. Serializable (Specified OCC Design for Non-Deterministic Compute)
+**The Paradigm:** Ghost-Ark's specified DAB Tier-0 (Declarative Action Binding)
+design.
+**The Mechanism:** The design applies Optimistic Concurrency Control (OCC) over
+the agentic sequence. Its intended execution trace $\tau$ is isolated in a
+ghost replica $G(\sigma_0)$, and `VerifyAndBind` is the proposed two-phase
+commit (2PC) validation phase. This is not a claim about the current DAB V1
+socket implementation.
 
 ---
 
@@ -35,8 +48,9 @@ Let $\sigma_t$ represent the state of the external environment at time $t$.
 
 An agent submits a speculative trace of intended tool calls $\tau_{intent} = \langle a_1, \dots, a_k \rangle$ generated against the projected starting state $\pi_R(\sigma_0)$.
 
-**The Validation Phase (`VerifyAndBind`)**
-Before any action $a_i \in \tau_{intent}$ is appended to the `execution_buffer`, the Gateway validates the transaction using two gates:
+**The Specified Validation Phase (`VerifyAndBind`)**
+Before the design appends any action $a_i \in \tau_{intent}$ to the
+`execution_buffer`, it validates the transaction using two gates:
 
 1. **The Ledger Gate (Replay & Liveness):**
    $$ n_i \notin S_{spent} \quad \text{and} \quad n_i \notin \mathcal{L}_{nonce} $$
@@ -69,9 +83,16 @@ For the union of failures (any single step violating semantic compliance):
 
 $$ \max_{i=1}^k \mathbb{P}(F_i) \le \mathbb{P}(F_{\text{any}}) \le \min\left(1, \sum_{i=1}^k \mathbb{P}(F_i)\right) $$
 
-Instead of assuming independent execution errors, Ghost-Ark's Semantic Gate calculates these dependent bounds to intercept cascading hallucinations in the ghost replica before they write to the physical environment.
+Instead of assuming independent execution errors, the unit-tested semantic
+helper calculates these dependence-free bounds. In the specified design, that
+result would gate a speculative trace before physical execution. The current
+DAB V1 socket handler does not call the helper, so it does not currently
+intercept a trace or attest a semantic-gate decision.
 
-#### Validation Pipeline Architecture
+#### Specified Validation Pipeline Architecture
+
+The following diagram is a design model, not a trace of the current socket
+handler:
 
 ```mermaid
 graph TD
@@ -84,4 +105,7 @@ graph TD
     D -- "Within Bounds" --> Commit[VerifyAndBind: Commit to Execution Log]
 ```
 
-By passing through all three verification gates, the transaction verifies both low-level cryptographic freshness and high-level semantic alignment prior to execution.
+If an implementation passes through all three specified gates, it evaluates the
+low-level freshness and supplied semantic-bound predicates before execution.
+The present DAB V1 runtime has evidence only for the ledger component and the
+signed `CERTIFIED` receipt path described in the runtime-status document.

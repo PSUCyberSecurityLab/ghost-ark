@@ -48,6 +48,18 @@ function read(relative: string): string {
   return readFileSync(resolve(REPO_ROOT, relative), "utf8");
 }
 
+/**
+ * `main.tex` intentionally imports its manifest-derived evidence macros instead
+ * of duplicating them. Treat that include as part of the manuscript source for
+ * figure extraction, just as LaTeX does at build time.
+ */
+function readFigureSource(relative: string): string {
+  const source = read(relative);
+  return relative === "docs/paper/main.tex"
+    ? `${source}\n${read("docs/paper/evidence-macros.tex")}`
+    : source;
+}
+
 // ---------------------------------------------------------------------------
 // Tier 1 — ground truth, recomputed from the tracked tree on every run.
 // ---------------------------------------------------------------------------
@@ -156,13 +168,6 @@ const FACTS: readonly Fact[] = [
     command: "ls examples/malicious-receipts/receipts",
     measuredOn: "2026-08-02"
   },
-  {
-    id: "rust-gateway-tests",
-    expect: ["13"],
-    pattern: /gateway (\d+) \+ verifier/giu,
-    command: "cd dab/gateway && cargo test --locked",
-    measuredOn: "2026-08-02"
-  }
 ];
 
 const PROSE_FILES = git(["ls-files", "*.md", "*.tex"]).filter(
@@ -299,8 +304,8 @@ describe("measured figures agree across every document that quotes them", () => 
       },
       {
         file: "README-AE.md",
-        tests: /([\d,]+) tests \/ [\d,]+ files pass at HEAD/u,
-        files: /[\d,]+ tests \/ ([\d,]+) files pass at HEAD/u
+        tests: /([\d,]+) tests \/ [\d,]+ files (?:pass at HEAD|is the recorded lower-bound snapshot)/u,
+        files: /[\d,]+ tests \/ ([\d,]+) files (?:pass at HEAD|is the recorded lower-bound snapshot)/u
       },
       {
         file: "docs/paper/README.md",
@@ -316,7 +321,7 @@ describe("measured figures agree across every document that quotes them", () => 
 
     it("extracts the figure from every site, so none can drop out silently", () => {
       for (const site of SITES) {
-        const source = read(site.file);
+        const source = readFigureSource(site.file);
         expect(site.tests.exec(source)?.[1], `no test count found in ${site.file}`).toBeDefined();
         expect(site.files.exec(source)?.[1], `no file count found in ${site.file}`).toBeDefined();
       }
@@ -324,7 +329,7 @@ describe("measured figures agree across every document that quotes them", () => 
 
     it("agrees on the test and file counts across all four", () => {
       const readings = SITES.map((site) => {
-        const source = read(site.file);
+        const source = readFigureSource(site.file);
         return {
           file: site.file,
           tests: digits(site.tests.exec(source)?.[1] ?? ""),

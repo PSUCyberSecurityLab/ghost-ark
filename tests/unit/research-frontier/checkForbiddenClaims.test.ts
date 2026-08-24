@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -33,6 +33,22 @@ function runScanner(root: string): {
   stderr: string;
 } {
   const result = spawnSync(process.execPath, [scannerPath, root], {
+    encoding: "utf8",
+  });
+
+  return {
+    status: result.status,
+    stdout: result.stdout,
+    stderr: result.stderr,
+  };
+}
+
+function runTrackedScanner(root: string): {
+  status: number | null;
+  stdout: string;
+  stderr: string;
+} {
+  const result = spawnSync(process.execPath, [scannerPath, "--tracked", root], {
     encoding: "utf8",
   });
 
@@ -262,6 +278,24 @@ describe("forbidden claim scanner", () => {
     expect(result.stderr).toContain("fully-trustless");
   });
 
+  it("offers a deterministic tracked-source mode without weakening the working-tree scan", () => {
+    const root = makeTempRoot();
+    writeFixture(root, "docs/tracked.md", "This tracked file makes no assurance claim.\n");
+    writeFixture(root, "docs/untracked.md", phrase("Ghost-Ark", "proves", "AI", "safety."));
+    execFileSync("git", ["init", "-q"], { cwd: root });
+    execFileSync("git", ["add", "docs/tracked.md"], { cwd: root });
+
+    // Contributor mode intentionally sees an untracked draft, so a draft cannot
+    // evade the default public-claim gate before it is staged.
+    expect(runScanner(root).status).toBe(1);
+
+    // Snapshot mode deliberately sees only the tracked source population. It is
+    // used by paper-evidence to bind an observed file count to a Git revision.
+    const tracked = runTrackedScanner(root);
+    expect(tracked.status).toBe(0);
+    expect(tracked.stdout).toContain("Checked 1 tracked scannable files.");
+  });
+
   it("uses exact policy-document allowlists only", () => {
     const root = makeTempRoot();
     const blockedLine = phrase("Ghost-Ark", "proves", "AI", "safety.");
@@ -310,6 +344,21 @@ describe("forbidden claim scanner", () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("production-ready");
     expect(result.stderr).toContain("scripts/report.sh:1");
+  });
+
+  it("scans every public source extension used by the manuscript and infrastructure", () => {
+    const root = makeTempRoot();
+    writeFixture(root, "src/typed.mts", "// Ghost-Ark proves AI safety.\n");
+    writeFixture(root, "infra/policy.tf", "# Ghost-Ark is production-ready.\n");
+    writeFixture(root, "proofs/model.cfg", "# Ghost-Ark is fully trustless.\n");
+    writeFixture(root, "site/index.html", "<!-- Ghost-Ark eliminates all risk. -->\n");
+
+    const result = runScanner(root);
+
+    expect(result.status).toBe(1);
+    for (const path of ["src/typed.mts", "infra/policy.tf", "proofs/model.cfg", "site/index.html"]) {
+      expect(result.stderr).toContain(path);
+    }
   });
 
   it("scans Dockerfiles by basename prefix", () => {

@@ -1,49 +1,70 @@
-# APPENDIX A: USENIX ARTIFACT EVALUATION GUIDE
+# APPENDIX A: ARTIFACT EVALUATION GUIDE
 
-This appendix provides a step-by-step guide for USENIX Artifact Evaluation Committee (AEC) members to independently reproduce the empirical and mathematical claims made in this dissertation.
+This appendix retains an AEC-oriented route for the dissertation. It is not a
+venue selection. The current reviewer route and its release-bound metadata are
+defined by `docs/paper/evidence-snapshot.v1.json`; that snapshot is currently
+unreleased and must be tagged after the repaired evidence tree is committed.
 
-## 1. Reproducing the Formal Verification (TLA+)
+## 1. Reproducing the bounded formal evidence (TLA+)
 
-To verify the `NoReplays` safety invariant and the `EventualGC` liveness property, reviewers must run the TLC Model Checker against the provided TLA+ specifications.
+Prerequisite: Java 11 or newer. Run the canonical runner from the repository
+root:
 
-**Prerequisites:**
-- Java Runtime Environment (JRE) 11+
-- TLA+ Toolbox or TLC command-line tools.
+```bash
+bash scripts/run-proofs.sh
+```
 
-**Execution:**
-1. Navigate to the formal proofs directory:
-   ```bash
-   cd proofs/dab/
-   ```
-2. Execute the TLC model checker against the valid sequence discipline:
-   ```bash
-   tlc -config DAB_NonceLedger.cfg DAB_NonceLedger.tla
-   ```
-   **Expected Output**: The checker will exhaustively explore the bounded state space (1,321 distinct states for the shipped configuration) and report `Model checking completed. No error has been found.`, confirming `NoReplays` and `EventualGC` hold within the bounded tombstone model. This is a bounded model-checking result, not an implementation-safety claim — the implementation-mapping caveat (TTL eviction in `dab/gateway/src/nonce.rs`) is documented in `docs/artifact/repository_inventory.md` §7.2. Alternatively, run `bash scripts/run-proofs.sh` from the repository root: it checks every spec with a pinned `tla2tools`, expects mutants to violate, and records logs under `artifacts/proofs/logs/` (committed reference copies: `proofs/dab/artifacts/`).
-3. Execute the TLC model checker against the falsifiable TOCTOU mutant:
-   ```bash
-   tlc -config DAB_NonceLedger.cfg DAB_NonceLedger_Mutant.tla
-   ```
-   **Expected Output**: The checker will immediately fail, printing an error trace demonstrating the exact sequence of concurrent states that violates the `NoReplays` invariant. This proves the validity and falsifiability of the model.
+The runner verifies the stable `tla2tools v1.7.4` pin (SHA-256
+`936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88`) before
+TLC starts. It checks six clean bounded baselines and five mutants expected to
+violate. Five baselines are paired with mutants; `DAB_ExecutionBoundary` is the
+sixth clean baseline and has no mutant, so its result is one-sided.
 
-## 2. Reproducing the Empirical Evaluation ($\Delta_{\text{DE}}$)
+`DAB_NonceLedger` checks `NoReplays` and `EventualGC` over its bounded tombstone
+model (1,321 distinct states in the recorded configuration). Its TOCTOU mutant
+must produce a counterexample. These outcomes concern the finite model, not the
+runtime implementation or a deployment.
 
-To verify the physical execution consistency and the system's ability to halt AST/payload mutations, reviewers must run the local benchmark laboratory.
+The runner writes fresh logs to `artifacts/proofs/logs/` and a generated summary
+to `artifacts/proofs/proofs_summary.json`. Those paths are generated and ignored.
+The committed raw logs live under `proofs/tla/artifacts/` and
+`proofs/dab/artifacts/`; their exact paths and SHA-256 digests are listed in the
+evidence snapshot.
 
-**Prerequisites:**
-- Node.js v22+ (native TypeScript type-stripping; no `ts-node` and no additional dependencies required).
+## 2. Reproducing the paper evidence
 
-**Execution:**
-1. Navigate to the project root:
-   ```bash
-   cd ghost-ark/
-   ```
-2. Execute the Tier-0 aggregate runner (all attack suites plus formal games and performance):
-   ```bash
-   node --experimental-strip-types dab/bench/run_all.ts --trials 10000
-   ```
-   **Expected Output**: A single JSON document on stdout with `all_passed: true` and `global_advantage: 0`. Within it:
-   - `attacks`: every mutation/replay/unicode/concurrency entry reports `detected: true` — for `payload_field_mutation` and `single_byte_flip` the `expected` hash ($C_I$) strictly diverges from the `observed` hash ($C_E$); `mass_replay_flood` accepts exactly 1 execution and rejects the remainder; `double_execution_race` results in exactly 1 execution state transition.
-   - `formal_games`: each game reports `advantage: 0` with its finite-sample confidence upper bound (≈ 3×10⁻⁴ at 10,000 trials) printed alongside, not omitted.
+Prerequisite: the snapshot’s Node toolchain (currently Node `v22.22.3`) and the
+repository dependencies.
 
-   Per the runner's own non-claim header: a green result demonstrates in-suite detection under the modeled attacker only; it is not a proof of safety and says nothing about the DAB gateway/verifier TCB.
+```bash
+npm ci
+make paper-evidence
+```
+
+This fail-closed gate runs:
+
+1. E2, which reports cost with p50 and IQR on its declared host;
+2. E3, a malicious corpus against the real standalone verifier with a control
+   arm;
+3. E4, which confirms the E3 detections depend on the mechanism under test;
+4. the canonical TLC runner, `npm test`, and a tracked-source claim scan.
+
+It deliberately excludes `dab/bench/**`. Retraction R10 records why the old
+benchmark aggregate is not evidence for any empirical, runtime, or security
+claim. Run `make reproduce` only to inspect the legacy broad artifact report;
+it does not rerun E2/E3/E4 and is not a manuscript-evidence command.
+
+## 3. DAB socket prototype boundary
+
+The local Rust socket harness can be exercised separately:
+
+```bash
+bash dab/roundtrip/run_socket_e2e.sh
+```
+
+It supplies local E2E evidence for decoded-payload binding, the nonce ledger,
+and verification of a signed `CERTIFIED` V1 receipt. It does not exercise
+OCC/read-set validation or the semantic gate, which remain unit-tested helpers,
+and it does not establish signed/replayable rejection receipts or an
+execution-target binding. The manuscript runtime-status matrix states the full
+component/test/runtime/E2E distinction.

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ghost-Ark Evidence Observatory</title>
+<title>Ghost-Ark Design Observatory — Explanatory Only</title>
 <style>*{margin:0;padding:0}</style>
 </head>
 <body>
@@ -212,35 +212,34 @@
 <div class="wrap">
 
   <header class="mast reveal">
-    <span class="eyebrow">Ghost-Ark &middot; DAB Tier-0 &middot; Evidence Observatory</span>
+    <span class="eyebrow">Ghost-Ark &middot; DAB Tier-0 &middot; Design Observatory</span>
     <h1>Make the invisible <span class="ghost">visible.</span></h1>
     <p class="lede">
-      Ghost-Ark treats an untrusted agent's trajectory as a software transaction:
-      it speculates in a ghost replica, commits only through validation, and signs
-      a receipt either way. This console reads the faint signals that discipline
-      leaves behind. <b>Every figure here is a recorded run</b> &mdash; distrust the
-      author, the README, and the model, then replay the digest, verify the
-      signature, and reproduce the failure boundary.
+      This is an interactive explanation of Ghost-Ark's specified transaction
+      design and a narrow DAB socket prototype. It is <b>not an evidence
+      artifact</b>: the sliders do not invoke Ghost-Ark, and this page does not
+      bind numerical or runtime-status claims. Consult the tracked
+      <a href="evidence-snapshot.v1.json">evidence snapshot</a> and
+      <a href="../../README-AE.md">claim-to-command map</a> for those claims.
     </p>
-    <span class="stamp"><span class="dot"></span> Evidence-bound at repository HEAD &middot; <b>2026-07-16</b> &middot; claim gate <b>0 / 601</b></span>
+    <span class="stamp"><span class="dot"></span> Explanatory companion only &middot; evidence snapshot dated <b>2026-08-13</b> is unreleased &middot; <a href="evidence-snapshot.v1.json">authoritative snapshot</a></span>
   </header>
 
-  <section class="strip reveal" aria-label="Recorded results at a glance">
-    <div class="stat"><div class="k">Gateway &harr; verifier</div><div class="v">5 / 5</div><div class="s">round-trip, real ed25519</div></div>
-    <div class="stat"><div class="k">Socket E2E</div><div class="v">3 / 3</div><div class="s">over /ipc/dab.sock</div></div>
-    <div class="stat"><div class="k">Kubernetes</div><div class="v">&#10003;</div><div class="s">verified in-cluster</div></div>
-    <div class="stat"><div class="k">TLC models</div><div class="v">5 + 5</div><div class="s">clean + mutants violate</div></div>
-    <div class="stat"><div class="k">Rust tests</div><div class="v">20</div><div class="s">clippy &minus;D warnings clean</div></div>
-    <div class="stat warn"><div class="k">Adversary advantage</div><div class="v">0</div><div class="s">4 games &times; 10,000</div></div>
+  <section class="strip reveal" aria-label="Scope at a glance">
+    <div class="stat"><div class="k">Payload + ledger</div><div class="v">wired</div><div class="s">local DAB socket prototype</div></div>
+    <div class="stat warn"><div class="k">OCC helper</div><div class="v">not wired</div><div class="s">unit-tested; no socket E2E</div></div>
+    <div class="stat warn"><div class="k">Semantic helper</div><div class="v">not wired</div><div class="s">unit-tested; no socket E2E</div></div>
+    <div class="stat"><div class="k">TLC models</div><div class="v">6 + 5</div><div class="s">bounded baselines + mutants</div></div>
+    <div class="stat warn"><div class="k">DAB bench</div><div class="v">quarantined</div><div class="s">not paper evidence</div></div>
   </section>
 
   <p class="section-label">Instruments</p>
   <div class="grid cols-2">
 
     <section class="card reveal">
-      <div class="head"><h2>The correlation you can't assume away</h2><span class="tag">&sect;4.2 &middot; live</span></div>
+      <div class="head"><h2>The correlation you can't assume away</h2><span class="tag">interactive illustration</span></div>
       <p>
-        Guardrail failures correlate. The semantic gate triggers on the
+        Guardrail failures correlate. The specified semantic helper evaluates the
         dependence-free Fr&eacute;chet upper bound &mdash; valid under <i>every</i> joint law.
         Drag the marginal and the trajectory length: an independence assumption
         (dashed) always sits <i>inside</i> the envelope, quietly under-reporting
@@ -259,11 +258,11 @@
     </section>
 
     <section class="card reveal">
-      <div class="head"><h2>The weakness we measured</h2><span class="tag">&sect;5.5 &middot; live</span></div>
+      <div class="head"><h2>The replay-window boundary</h2><span class="tag">interactive illustration</span></div>
       <p>
-        Most papers state a caveat and stop. The ledger's tombstone set is
-        capacity-bounded, so pruning reopens a replay window &mdash; and we
-        <i>measured</i> it. Driving the real ledger yields an exact law:
+        The evidence snapshot records a real-ledger measurement of a
+        capacity-bounded tombstone set: pruning reopens a replay window. This
+        slider illustrates the recorded law:
         window = max(0, K &minus; C). Below capacity the window is empty; above it,
         every extra tombstone is one more replayable nonce.
       </p>
@@ -280,37 +279,39 @@
     </section>
   </div>
 
-  <p class="section-label">The three-gate pipeline</p>
+  <p class="section-label">Specified three-gate architecture</p>
   <section class="card reveal">
-    <p>A speculative trajectory reaches the world only by passing three
-      independently answerable questions. Every path &mdash; commit or any-gate abort &mdash;
-      terminates in a signed receipt.</p>
+    <p>This diagram shows the specified composition, not the full shipped runtime.
+      The DAB socket prototype wires payload-byte binding and the ledger subset.
+      OCC and semantic helpers are not runtime-enforced. Only a successful
+      <code>CERTIFIED</code> execution is signed and verifier-accepted; rejection
+      responses are not signed receipts.</p>
     <div class="pipe">
       <div class="gate">
         <span class="n">1</span>
         <div class="body"><div class="t">Ledger gate &mdash; is it fresh?</div>
           <div class="d">Nonce rejected if in the active ledger <code>&or;</code> the spent-tombstone set. Wired from the TLC-verified model.</div></div>
-        <span class="pill ok">Implemented &middot; Wired &middot; TLC-checked</span>
+        <span class="pill ok">Socket-wired &middot; bounded model</span>
       </div>
       <div class="flow">&darr; &nbsp; no</div>
       <div class="gate">
         <span class="n">2</span>
         <div class="body"><div class="t">OCC gate &mdash; is it current?</div>
-          <div class="d"><code>H(&pi;_R(&sigma;_now)) = H(&pi;_R(&sigma;&#8320;))</code> over the declared read-set &mdash; recovers liveness from the starvation trap.</div></div>
-        <span class="pill spec">Specified &middot; schema tested</span>
+          <div class="d"><code>H(&pi;_R(&sigma;_now)) = H(&pi;_R(&sigma;&#8320;))</code> over the declared read-set &mdash; a unit-tested helper in the specified design.</div></div>
+        <span class="pill spec">Specified &middot; not wired</span>
       </div>
       <div class="flow">&darr; &nbsp; no</div>
       <div class="gate">
         <span class="n">3</span>
         <div class="body"><div class="t">Semantic gate &mdash; within policy?</div>
-          <div class="d">Aborts when the Fr&eacute;chet bound <code>min(1, &Sigma;p&#7522;)</code> exceeds policy. Bounds supplied marginals; classifies nothing.</div></div>
-        <span class="pill ok">Implemented &middot; unit-tested</span>
+          <div class="d">The unit-tested helper compares the Fr&eacute;chet bound <code>min(1, &Sigma;p&#7522;)</code> with policy. It bounds supplied marginals and classifies nothing.</div></div>
+        <span class="pill spec">Unit-tested &middot; not wired</span>
       </div>
       <div class="flow">&darr; &nbsp; no</div>
       <div class="terminal commit">
         <span class="n" style="color:var(--signal-ink)">&#10003;</span>
-        <div class="t">VerifyAndBind &mdash; commit buffer, emit signed receipt</div>
-        <span class="pill ok">Certified</span>
+        <div class="t">DAB socket path &mdash; signs a successful <code>CERTIFIED</code> outcome only</div>
+        <span class="pill ok">Narrow runtime</span>
       </div>
     </div>
   </section>
@@ -318,10 +319,10 @@
   <p class="section-label">A signal from the ghost trace</p>
   <div class="grid cols-2">
     <section class="card reveal">
-      <div class="head"><h2>Receipt specimen</h2><span class="tag">recorded</span></div>
-      <p>A real certified receipt from the recorded round-trip &mdash; the invisible
-        decision made into an auditable, replayable object. The signature is a
-        genuine ed25519 signature over the domain-separated canonical message.</p>
+      <div class="head"><h2>Certified-receipt specimen</h2><span class="tag">illustrative shape</span></div>
+      <p>This illustrates the successful <code>CERTIFIED</code> DAB V1 path. Consult
+        the evidence snapshot and recorded round-trip artifacts for the source
+        evidence; this rendered specimen is not itself a receipt artifact.</p>
       <div class="receipt" role="table" aria-label="DAB certified receipt">
         <div class="rrow"><span class="rk">protocol</span><span class="rv">DAB-TIER0-V1</span></div>
         <div class="rrow status-line"><span class="rk">status</span><span class="rv" style="color:var(--signal-ink);font-weight:600">CERTIFIED</span></div>
@@ -331,14 +332,17 @@
         <div class="rrow"><span class="rk">policy_digest</span><span class="rv hash">sha256:be27d158&hellip;ba2405</span></div>
         <div class="rrow"><span class="rk">signature</span><span class="rv hash">08262ba9&hellip;18f707 <span class="note">&nbsp;(ed25519)</span></span></div>
       </div>
-      <p class="muted" style="font-size:0.86rem">Independent verifier accepts this and rejects a brutal forgery corpus &mdash; tampered field, protocol downgrade, non-hex / truncated / all-zero / transplanted signatures, wrong key &mdash; each with its specific error.</p>
+      <p class="muted" style="font-size:0.86rem">The independent DAB verifier accepts
+        signed <code>CERTIFIED</code> receipts only. Replay and mutation branches
+        return unsigned status messages; malformed and execution-failure paths can
+        return no receipt.</p>
     </section>
 
     <section class="card reveal">
-      <div class="head"><h2>Model checking with teeth</h2><span class="tag">tla2tools 1.8.0</span></div>
-      <p>Every invariant is paired with a seeded <i>mutant</i> that must fail &mdash; so a
-        clean pass can't be vacuous. The nonce-ledger mutant reproduces the exact
-        replay flaw model checking once found in our own design.</p>
+      <div class="head"><h2>Bounded model checking</h2><span class="tag">tla2tools v1.7.4</span></div>
+      <p>Five of six baseline models have seeded mutants that must violate; the
+        execution-boundary baseline has no mutant, so its clean result is one-sided.
+        These are bounded-model results, not proofs of the implementation.</p>
       <div class="table-scroll">
         <table>
           <thead><tr><th>Model</th><th>Distinct states</th><th>Result</th></tr></thead>
@@ -346,8 +350,9 @@
             <tr><td class="claim">ProvenanceLattice</td><td class="res">403,949</td><td><span class="pill ok">clean</span></td></tr>
             <tr><td class="claim">SpeculativeCollapse</td><td class="res">529</td><td><span class="pill ok">clean</span></td></tr>
             <tr><td class="claim">TransportBoundary</td><td class="res">64</td><td><span class="pill ok">clean</span></td></tr>
+            <tr><td class="claim">TenantIsolation</td><td class="res">149,796</td><td><span class="pill ok">clean</span></td></tr>
             <tr><td class="claim">DAB_NonceLedger</td><td class="res">1,321</td><td><span class="pill ok">clean</span></td></tr>
-            <tr><td class="claim">DAB_ExecutionBoundary</td><td class="res">51,106</td><td><span class="pill ok">clean</span></td></tr>
+            <tr><td class="claim">DAB_ExecutionBoundary</td><td class="res">51,106</td><td><span class="pill spec">clean &middot; one-sided</span></td></tr>
             <tr><td class="claim">+ 5 mutants</td><td class="res">&mdash;</td><td><span class="pill spec" style="color:var(--alert);background:var(--alert-soft);border-color:var(--alert)">violation reproduced</span></td></tr>
           </tbody>
         </table>
@@ -355,19 +360,17 @@
     </section>
   </div>
 
-  <p class="section-label">Claim &rarr; evidence &rarr; command</p>
+  <p class="section-label">Where evidence belongs</p>
   <section class="card reveal" style="padding-top:20px">
     <div class="table-scroll">
       <table>
-        <thead><tr><th>Claim</th><th>Reproduce</th><th>Recorded result</th></tr></thead>
+        <thead><tr><th>Scope</th><th>Authoritative source</th><th>Boundary</th></tr></thead>
         <tbody>
-          <tr><td class="claim">Gateway receipt verifies against the independent verifier</td><td><code>run_in_docker.sh</code></td><td class="res">ROUND-TRIP: OK (5/5)</td></tr>
-          <tr><td class="claim">Wired tombstone ledger rejects replay over the real socket</td><td><code>run_socket_e2e.sh</code></td><td class="res">SOCKET-E2E: OK (3/3)</td></tr>
-          <tr><td class="claim">Custody round-trip runs on Kubernetes</td><td><code>k8s/run_demo.sh</code></td><td class="res">VERIFIED &middot; succeeded=1</td></tr>
-          <tr><td class="claim">Modeled-attacker advantage is zero</td><td><code>run_all.ts</code></td><td class="res">global_advantage = 0</td></tr>
-          <tr><td class="claim">Enforcement path adds microseconds, not milliseconds</td><td><code>make benchmark</code></td><td class="res">p50 5.5&micro;s &middot; +6.6&micro;s mean</td></tr>
-          <tr><td class="claim">Bounded replay window = max(0, K &minus; C)</td><td><code>dab-replay-stress</code></td><td class="res">LAW CONFIRMED</td></tr>
-          <tr><td class="claim">Docs stay within the claim boundary</td><td><code>npm run scan:claims</code></td><td class="res">0 / 601 files</td></tr>
+          <tr><td class="claim">Recorded paper evidence</td><td><a href="evidence-snapshot.v1.json">evidence-snapshot.v1.json</a></td><td class="res">Recorded local snapshot; unreleased</td></tr>
+          <tr><td class="claim">Claim &rarr; command map</td><td><a href="../../README-AE.md">README-AE.md</a></td><td class="res">Commands and limitations, not this page</td></tr>
+          <tr><td class="claim">Paper replay gate</td><td><code>make paper-evidence</code></td><td class="res">E2/E3/E4, TLC, tests, tracked scan</td></tr>
+          <tr><td class="claim">DAB socket prototype</td><td><code>dab/roundtrip/run_socket_e2e_in_docker.sh</code></td><td class="res">Payload + ledger subset; CERTIFIED only</td></tr>
+          <tr><td class="claim">DAB bench programs</td><td><code>dab/bench/*</code></td><td class="res">Quarantined; not paper evidence</td></tr>
         </tbody>
       </table>
     </div>
@@ -381,7 +384,9 @@
       <li><span class="x">&mdash;</span><span><b>No semantic safety.</b> The gate bounds a function of supplied marginals; garbage in, well-computed garbage out. It certifies no detector's hit rate.</span></li>
       <li><span class="x">&mdash;</span><span><b>Bounded models, not verified implementations.</b> TLC is exhaustive only within stated bounds; conformance of the Rust/TypeScript code is tested, not proved.</span></li>
       <li><span class="x">&mdash;</span><span><b>DEV key, not production custody.</b> A local ed25519 key &mdash; not KMS, HSM, TPM, or Nitro attestation. Signing proves authorization over bytes, not runtime integrity.</span></li>
-      <li><span class="x">&mdash;</span><span><b>Modeled attacker only.</b> The zero-advantage result covers the nine-attack / four-game family, in-process &mdash; not unmodeled attacks or availability.</span></li>
+      <li><span class="x">&mdash;</span><span><b>No runtime three-gate composition.</b> The socket prototype wires payload-byte binding and nonce freshness only; OCC and semantic helpers are not gateway-wired.</span></li>
+      <li><span class="x">&mdash;</span><span><b>Certified-only DAB receipts.</b> A successful <code>CERTIFIED</code> execution is signed; rejection responses are unsigned and malformed or execution-failure paths can emit no receipt.</span></li>
+      <li><span class="x">&mdash;</span><span><b>Quarantined benchmark material.</b> No result from <code>dab/bench/</code> is paper evidence.</span></li>
       <li><span class="x">&mdash;</span><span><b>No live-cloud evidence.</b> KMS-mode signing and the full AWS path are design targets; nothing here is a cloud measurement.</span></li>
       <li><span class="x">&mdash;</span><span><b>Single node.</b> Ledgers are single-writer; multi-node consensus is future work, not a property of this system.</span></li>
     </ul>

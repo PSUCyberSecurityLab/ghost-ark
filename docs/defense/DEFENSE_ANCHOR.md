@@ -1,10 +1,17 @@
 # Dissertation Defense Anchor — The Evidence Kernel
 
-Status: defense preparation document, 2026-07-16. Companion to
+Status: defense preparation document, 2026-07-16; runtime-boundary correction
+2026-08-14. Companion to
 `docs/dissertation/` (the monograph), `docs/paper/` (the conference
 manuscript), and `README-AE.md` (the claim-to-command map). Every answer
 below cites the artifact that backs it; an answer with no artifact is a
 concession, and the remaining ones are listed deliberately in §3.
+
+For current DAB V1 runtime facts, this document defers to
+[`DAB_RUNTIME_STATUS.md`](../architecture/DAB_RUNTIME_STATUS.md). In particular,
+the local socket E2E covers the replay ledger and a signed `CERTIFIED` path;
+it does not make the OCC or semantic helpers runtime gates, bind an execution
+target, or produce a signed rejection receipt for every abort.
 
 > **§0. Brutal-readiness addendum (2026-07-16).** Two questions a hostile
 > committee would have won last week are now closed with recorded evidence,
@@ -34,15 +41,15 @@ When the committee pushes out of bounds — hallucination rates, training-data
 contamination, "but is the model safe?" — the defense is one move, stated
 without defensiveness:
 
-> Ghost-Ark does not fix the LLM, and does not measure it. It takes the
-> model's fallibility as an axiom and changes what a fallible plan can touch:
-> the agent speculates against an isolated replica, its effects reach the
-> physical environment only through a validated commit, a failed validation
-> collapses the speculation before anything physical mutates, and every
-> decision — commit or abort — leaves a signed, independently replayable
-> receipt. Questions about the model's internals are upstream of this
-> boundary by construction; that is not a limitation of the thesis, it *is*
-> the thesis.
+> Ghost-Ark does not fix the LLM, and does not measure it. Its three-gate
+> transactional model specifies isolated speculation, validation before a
+> physical effect, and collapse on a failed validation. The shipped DAB V1
+> socket path is narrower: it binds decoded payload bytes, consumes a nonce,
+> and issues a signed, independently verifiable receipt only for a
+> `CERTIFIED` execution. OCC and semantic checks are not wired into that path;
+> rejections are not all signed or independently replayable. Questions about
+> the model's internals are upstream of this boundary by construction; that is
+> not a limitation of the thesis, it *is* the thesis.
 
 Precision note (do not paraphrase into error): Ghost-Ark discards
 **speculative, uncommitted** effects. It does not roll back committed
@@ -77,30 +84,25 @@ implementation was brought into conformance, and both oracle directions
 Evidence: `proofs/dab/artifacts/`, inventory §7.1–7.2, `make proof`.
 
 **"Attacker advantage 0 — so it's secure?"**
-Advantage 0 over 4 games × 10,000 trials under the modeled attacker,
-in-suite, in-process. A zero numerator over 10⁴ trials bounds the modeled
-per-trial rate below ≈3×10⁻⁴ at 95% confidence and says nothing outside the
-modeled family — the bench's own header states the non-claim. If the
-committee wants the sentence: "the modeled channels are closed; unmodeled
-channels are unmeasured."
-Evidence: `dab/bench/run_all.ts`, README-AE row 2.
+Withdrawn as defended evidence. `dab/bench/run_all.ts` is quarantined because
+its result does not invoke the component it purports to measure; its advantage
+calculation is model-internal, not evidence about the live DAB gateway. The
+replacement evidence for receipt-verifier behavior is E3/E4, which still does
+not establish gateway attack resistance or an end-to-end containment rate.
 
 **"1,333% overhead is disqualifying."**
-The denominator is a 0.5 µs no-op dispatch. Absolute added cost is ≈6.6 µs
-mean in-process — beneath measurement noise next to any real tool call, and
-the honest converse is stated in the same breath: cloud I/O and KMS latency
-are unmeasured; "fast" is not claimed. (Manuscript §5.3 makes this argument
-in full; do not let a percentage discussion proceed without renaming the
-denominator.)
+Withdrawn with the quarantined benchmark. No current DAB experiment measures
+an end-to-end gateway overhead, cloud I/O latency, or KMS latency. E2 measures
+standalone verifier work with a parse-only baseline; it must not be repurposed
+as a DAB execution-cost claim.
 
 **"The OCC gate is not implemented. Is this vaporware?"**
-The paper labels it [specified, not enforced at runtime] in the
-contributions list, the architecture section, and the limitations — the
-receipt schema including the serialized π_R read-set is implemented and
-tested. The defended contribution is the *analysis*: why global validation
-starves, what the projection recovers, and what it costs (read-set
-faithfulness, phantom exposure). An implemented-but-unanalyzed gate would be
-worth less to the field than an analyzed-and-labeled specification.
+The OCC/read-set helper is unit-tested, but no shipped DAB socket-handler
+caller invokes it. The defended contribution is the *specified analysis*: why
+global validation starves, what the projection recovers, and what it costs
+(read-set faithfulness, phantom exposure). A representation of a read-set in a
+schema or a local helper is not runtime enforcement, so no serializability,
+conflict-abort, or liveness measurement is claimed.
 
 **"The semantic gate is garbage-in, garbage-out."**
 Correct, by design, and stated in print. It computes the dependence-free
@@ -109,7 +111,9 @@ every dependence structure, including adversarial correlation, which is the
 CC-Framework's entire subject. The alternative (independence assumptions)
 is not more rigorous; it is quietly wrong in exactly the correlated-failure
 regime that matters. Saturation at long horizons is likewise conceded and
-analyzed (manuscript §4.2).
+analyzed (manuscript §4.2). The evaluator is unit-tested only: it has no live
+DAB caller, so it does not currently block execution or produce a runtime
+semantic-gate receipt.
 
 **"Why is there no InjecAgent number in the evaluation?"**
 Because we did not re-run InjecAgent, and the paper says so explicitly
@@ -145,14 +149,17 @@ claimed as novel cryptography.
 ## 3. Deliberate concessions (say them before the committee does)
 
 1. No live-AWS evidence anywhere in the defended claims; the gateway signs
-   with a local DEV ed25519 key, not KMS/HSM/TPM/Nitro. (The
-   gateway↔verifier round-trip that *was* a concession here is now closed and
-   recorded — §0 — so the honest residual shrinks to key custody, not the
-   receipt path.)
+   with a local DEV ed25519 key, not KMS/HSM/TPM/Nitro. The recorded
+   gateway↔verifier round-trip closes the narrow `CERTIFIED`-receipt
+   interoperability gap only. V1 has no target binding; its replay and
+   mutation replies have empty signatures; malformed, oversized,
+   wrong-protocol, invalid-base64, and execution-failure paths emit no
+   receipt; and the verifier accepts only `CERTIFIED` receipts.
 2. `receipts.rs` and `gateway/src/verifier.rs` remain orphaned parallel
    surfaces (dead code); the live paths are `GatewayReceipt` in `main.rs` and
    the `dab-verifier` crate. The TypeScript `dab/agent-runtime/` library is
-   still unwired (the exercised agent driver is the Rust `dab-agent`).
+   still unwired and its IPC envelope uses `DAB-TIER0`, not the Rust handler's
+   required `DAB-TIER0-V1`; the exercised agent driver is the Rust `dab-agent`.
 3. Single-node everything: no consensus, no replication, no availability
    story. That is Tier-1 (below), not the defended system.
 

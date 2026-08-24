@@ -91,7 +91,7 @@
 <text x="28" y="456" class="s ink t" font-size="12">Why the mutant state counts are absent, deliberately.</text>
 <text x="28" y="476" class="s mut" font-size="11">Baseline state counts are a model property and reproduce exactly. MUTANT state counts are withdrawn under retraction R11: a mutant halts at the first</text>
 <text x="28" y="493" class="s mut" font-size="11">counterexample and TLC runs -workers auto, so the count varies run to run. The VIOLATION_REPRODUCED verdict is stable; only the count is withdrawn.</text>
-<text x="28" y="532" class="s faint" font-size="11">Baseline counts are reproducible and are printed. The gate is a yes/no verdict and is unaffected — five baselines must pass and five mutants must violate.</text>
+<text x="28" y="532" class="s faint" font-size="11">Six baselines and five mutants are recorded; five paired baselines and their five mutants gate two-sided checks.</text>
 <line x1="28" y1="536" x2="1132" y2="536" stroke="var(--line)" stroke-width="1" opacity="0.6"/>
   <text x="28" y="558" class="m faint" font-size="10.5">make proof · tla2tools v1.7.4 · all gating specs met expectation · measured 2026-08-12</text>
 </svg>

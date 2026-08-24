@@ -113,8 +113,13 @@ const gatingFailures = gatingStages.filter((s) => s.exit !== 0).map((s) => s.sta
 const overall = gatingFailures.length === 0 && gatingStages.length > 0 ? "PASS" : "FAIL";
 const totalSeconds = stages.reduce((acc, s) => acc + (s.seconds ?? 0), 0);
 
+// `scripts/run-attacks.sh` deliberately separates the gating root-security
+// result from the quarantined DAB smoke record. Do not flatten the latter into
+// an evidence result: it is retained only to disclose that the harness ran.
+const rootSecurity = attacks?.gating_evidence?.root_security ?? null;
+const quarantinedDabBench = attacks?.quarantined_smoke?.dab_bench ?? null;
 const attacksBlockedNote = attacks
-  ? `root_security=${attacks.root_security?.passed}; dab_bench.all_passed=${attacks.dab_bench?.all_passed} (global_advantage=${attacks.dab_bench?.global_advantage})`
+  ? `root_security=${rootSecurity?.passed ?? "not recorded"}; quarantined dab_bench.exit_status=${quarantinedDabBench?.exit_status ?? "not recorded"} (non-gating, not evidence)`
   : "not run";
 
 const summary = {
@@ -224,7 +229,7 @@ process.stdout.write(
     `Platform:        ${summary.platform} (${summary.arch})`,
     `Total Tests:     ${tests.total !== null ? `${tests.passed}/${tests.total} passed` : "n/a"}`,
     `Proofs Passed:   ${proofRollup.gating_met}/${proofRollup.gating_total} (gating); ${proofRollup.quarantined} quarantined`,
-    `Attacks Blocked: ${attacks ? `root=${attacks.root_security?.passed}, dab=${attacks.dab_bench?.all_passed}` : "n/a"}`,
+    `Attack Gate:     ${attacks ? `root=${rootSecurity?.passed ?? "not recorded"}; quarantined_dab_exit=${quarantinedDabBench?.exit_status ?? "not recorded"} (not evidence)` : "n/a"}`,
     `Benchmarks:      ${benchmarks ? `overhead ${benchmarks.overhead_percent ?? "?"}%` : "n/a"}`,
     `Runtime:         ${totalSeconds}s`,
     `Status:          ${overall}`,

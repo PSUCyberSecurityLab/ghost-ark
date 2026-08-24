@@ -47,7 +47,9 @@ use std::sync::Arc as StdArc;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine as _;
 
-const SOCKET_PATH: &str = "/ipc/dab.sock";
+const DEFAULT_SOCKET_PATH: &str = "/ipc/dab.sock";
+
+const DEFAULT_GATEWAY_PUBLIC_KEY_PATH: &str = "/ipc/gateway.pub";
 
 const MAX_REQUEST_BYTES: usize = 1024 * 1024;
 
@@ -134,6 +136,13 @@ fn now_timestamp() -> String {
     now.to_string()
 }
 
+fn configured_path(variable: &str, default: &str) -> String {
+    std::env::var(variable)
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| default.into())
+}
+
 /*
     Build a CERTIFIED receipt and sign it with the gateway's DEV ed25519 key
     over the canonical, domain-separated message the independent verifier
@@ -179,7 +188,7 @@ fn decode_payload(encoded: &str) -> Result<Vec<u8>, GatewayError> {
         .map_err(|_| GatewayError::InvalidRequest("Invalid base64 payload".into()))
 }
 
-fn execute_request(req: &GatewayRequest) -> Result<(), GatewayError> {
+fn execute_request(req: &GatewayRequest, payload_bytes: &[u8]) -> Result<(), GatewayError> {
     /*
         IMPORTANT:
 
@@ -193,7 +202,10 @@ fn execute_request(req: &GatewayRequest) -> Result<(), GatewayError> {
         .build()
         .unwrap()
         .post(&req.target)
-        .body(req.payload.clone())
+        // Send the same decoded bytes used to derive C_E. Sending the base64
+        // transport representation here would make a certified digest differ
+        // from the literal HTTP body observed by the target.
+        .body(payload_bytes.to_vec())
         .send()
         .map_err(|_| GatewayError::ExecutionFailed)?;
 
@@ -330,7 +342,7 @@ fn handle_client(mut stream: UnixStream, ledger: NonceLedger, signer: StdArc<Gat
         Only now may execution occur.
     */
 
-    if execute_request(&request).is_err() {
+    if execute_request(&request, &payload_bytes).is_err() {
         return;
     }
 
@@ -479,9 +491,15 @@ fn main() {
         std::process::exit(run_emit_receipt(&argv[2..]));
     }
 
-    let _ = std::fs::remove_file(SOCKET_PATH);
+    let socket_path = configured_path("DAB_SOCKET_PATH", DEFAULT_SOCKET_PATH);
+    let gateway_public_key_path = configured_path(
+        "DAB_GATEWAY_PUBLIC_KEY_PATH",
+        DEFAULT_GATEWAY_PUBLIC_KEY_PATH,
+    );
 
-    let listener = UnixListener::bind(SOCKET_PATH).expect("Cannot bind DAB socket");
+    let _ = std::fs::remove_file(&socket_path);
+
+    let listener = UnixListener::bind(&socket_path).expect("Cannot bind DAB socket");
 
     let signer =
         StdArc::new(GatewaySigner::from_dev_env().expect("gateway dev signer init failed"));
@@ -489,7 +507,7 @@ fn main() {
     println!("DAB Gateway TCB online");
     let pubkey_hex = signer.public_key_hex();
     println!("gateway_public_key {pubkey_hex}");
-    let _ = std::fs::write("/ipc/gateway.pub", &pubkey_hex);
+    let _ = std::fs::write(gateway_public_key_path, &pubkey_hex);
 
     let ledger = nonce::create_nonce_ledger();
 
@@ -533,4 +551,89 @@ async fn handle_http_exec(
         "ledgerChanged": false,
         "receipt": "0000000000000000000000000000000000000000000000000000000000000000"
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{
+        io::{Read, Write},
+        net::{TcpListener, TcpStream},
+        sync::mpsc,
+        thread,
+        time::Duration,
+    };
+
+    fn read_http_body(stream: &mut TcpStream) -> Vec<u8> {
+        let mut request = Vec::new();
+        let mut chunk = [0_u8; 1024];
+
+        loop {
+            let read = stream.read(&mut chunk).expect("read HTTP request");
+            assert_ne!(
+                read, 0,
+                "HTTP request ended before its complete body arrived"
+            );
+            request.extend_from_slice(&chunk[..read]);
+
+            let Some(header_end) = request.windows(4).position(|window| window == b"\r\n\r\n")
+            else {
+                continue;
+            };
+            let body_start = header_end + 4;
+            let headers = std::str::from_utf8(&request[..header_end]).expect("ASCII HTTP headers");
+            let content_length = headers
+                .lines()
+                .find_map(|line| {
+                    let (name, value) = line.split_once(':')?;
+                    name.eq_ignore_ascii_case("content-length").then(|| {
+                        value
+                            .trim()
+                            .parse::<usize>()
+                            .expect("numeric Content-Length")
+                    })
+                })
+                .expect("Content-Length header");
+
+            if request.len() >= body_start + content_length {
+                return request[body_start..body_start + content_length].to_vec();
+            }
+        }
+    }
+
+    #[test]
+    fn execute_request_sends_the_decoded_payload_bytes() {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind test sink");
+        let address = listener.local_addr().expect("test sink address");
+        let (sender, receiver) = mpsc::channel();
+        let sink = thread::spawn(move || {
+            let (mut stream, _) = listener.accept().expect("accept gateway request");
+            let body = read_http_body(&mut stream);
+            stream
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+                .expect("write test response");
+            sender.send(body).expect("send captured body");
+        });
+
+        let payload_bytes = vec![0_u8, b'd', b'e', b'c', b'o', b'd', b'e', b'd', 0xff];
+        let request = GatewayRequest {
+            protocol: PROTOCOL_VERSION.into(),
+            version: "1".into(),
+            c_i: sha256_bytes(&payload_bytes),
+            nonce: "decoded-body-test".into(),
+            target: format!("http://{address}"),
+            payload_encoding: "base64".into(),
+            payload: BASE64.encode(&payload_bytes),
+            issued_at: "0".into(),
+        };
+
+        execute_request(&request, &payload_bytes).expect("gateway request succeeds");
+        assert_eq!(
+            receiver
+                .recv_timeout(Duration::from_secs(1))
+                .expect("captured gateway body"),
+            payload_bytes
+        );
+        sink.join().expect("test sink joins");
+    }
 }

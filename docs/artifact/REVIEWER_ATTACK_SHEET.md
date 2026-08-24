@@ -35,8 +35,10 @@ the real verifier (E3) and every detection is checked for load-bearingness (E4).
 npm run experiment:e4
 ```
 
-> `TAUTOLOGY VERDICT: PASS` — with all 10 verifier checks forced to pass, detection drops
-> from 25 to 1, and that survivor is the malformed-JSON fixture.
+> `TAUTOLOGY VERDICT: PASS` — the current load-bearing check set and its
+> survivor bound are recorded in `docs/paper/evidence-snapshot.v1.json` and
+> replayed by `make paper-evidence`. Do not quote a stale fixed check count:
+> the guard’s value is that its detection falls when its mechanism is broken.
 
 **The guard is itself tested against a known-tautological detector**
 (`tests/unit/experiments/metamorphicGuard.test.ts`), because a guard that cannot fail is
@@ -51,8 +53,8 @@ npm run experiment:e2
 ```
 
 Every arm is reported as a ratio to a `json-parse-only` baseline, with p50 **and** IQR, on a
-recorded host. Full RSA-PSS verification is 65.89× the parse baseline and 5.4× the full HMAC
-path.
+recorded host. Exact latency ratios are snapshot-bound and must be read from
+`docs/paper/evidence-snapshot.v1.json`, not copied forward as a timeless result.
 
 E1 also carries a comparative arm: on `non-finite-overflow` Ghost-Ark fails closed while the
 naive control canonicalizer issues **one digest for two different numbers**. That is a
@@ -150,18 +152,19 @@ Correct in general, and this repository has hit exactly that hazard — `proofs/
 records a case where unquoted `.cfg` constants made CASE comparisons fall through so both
 models passed vacuously.
 
-Every specification is therefore paired with a deliberately-broken mutant, and CI asserts
-**both directions**: baselines must pass, mutants must violate. A mutant that passes fails
-CI.
+Five baseline specifications are paired with deliberately-broken mutants, and
+CI asserts **both directions** for those pairs: baselines must pass and mutants
+must violate. `DAB_ExecutionBoundary` is a sixth, clean bounded baseline with
+no seeded mutant, so it is explicitly one-sided rather than described as paired.
 
 ```bash
-curl -fsSL -o tla2tools.jar https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar
-bash tools/proofs/run-tlc.sh
+bash scripts/run-proofs.sh
 ```
 
-> 5 baselines clean, 5 mutants violated, 0 failures. (v1.7.4 is the pinned
-> toolchain; the runner was previously documented against the rolling v1.8.0
-> prerelease tag, whose bytes change under the same URL.)
+> 6 baselines clean, 5 mutants violated; the paired gate is 5 baselines / 5
+> mutants. `v1.7.4` is the pinned toolchain (SHA-256
+> `936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88`);
+> the historical rolling `v1.8.0` tag is retracted as a pin.
 
 `TenantIsolation.tla` joined the gate 2026-08-12 (previously an unchecked stub;
 now checked clean over 149,796 states with a stale-cache mutant that violates).

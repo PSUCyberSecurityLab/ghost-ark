@@ -391,8 +391,8 @@ flowchart TB
     subgraph I2["Instrument 2 — DAB speculative-execution gateway"]
         direction TB
         B1["dab/ — Rust gateway and verifier"]
-        B2["three-gate validation before any commit"]
-        B3["evidence tier: local, gateway 13 + verifier 13 tests in CI"]
+        B2["DAB V1 local socket path: payload binding + replay ledger\nOCC and semantic gates are specified helpers"]
+        B3["evidence tier: local; CERTIFIED path has socket E2E\nsee DAB runtime status"]
         B1 --> B2 --> B3
     end
 
@@ -405,12 +405,22 @@ flowchart TB
 Where each instrument is only local, only synthesized, or unbuilt is stated per artifact in
 [CI_COVERAGE.md](./docs/artifact/CI_COVERAGE.md).
 
-### The DAB gateway
+### The DAB gateway — specified three-gate design
+
+> **Runtime status:** The diagram below is the specified transactional design,
+> not a diagram of the complete shipped socket path. The local DAB V1 socket
+> prototype wires payload-byte binding and the nonce replay ledger. OCC/read-set
+> and semantic evaluators are unit-tested helpers with no live DAB caller. V1
+> signs only `CERTIFIED` receipts, does not bind the HTTP target, and does not
+> issue signed receipts for every rejection. The TypeScript IPC client is not
+> V1-interoperable with the Rust handler. See
+> [DAB V1 Runtime Status](./docs/architecture/DAB_RUNTIME_STATUS.md) for the
+> component-by-component evidence boundary.
 
 ```mermaid
 flowchart TD
-    A[Untrusted LLM agent] -->|speculative intent| B(Ghost replica / execution buffer)
-    B --> C{Three-gate validation}
+    A[Untrusted LLM agent] -->|speculative intent| B(Specified ghost replica / execution buffer)
+    B --> C{Specified three-gate validation}
 
     C -->|1 · ledger gate| D[nonce check]
     C -->|2 · OCC gate| E[read-set projection check]
@@ -424,8 +434,8 @@ flowchart TD
     E -->|any fail| H
     F -->|any fail| H
 
-    G --> I[emit canonical JSON receipt]
-    H --> I
+    G --> I[specified certified outcome receipt]
+    H --> J[specified signed rejection receipt]
 
     style G fill:#d8f2ee,stroke:#0d9488,color:#0f172a
     style H fill:#fbe0e0,stroke:#c02626,color:#0f172a
@@ -524,7 +534,8 @@ tools/        experiment harnesses (E1–E13), local verifiers, governance scann
               evidence utilities, and the standalone kernel-probe.
 tests/        unit, integration, differential, security, AWS-gated, policy-simulation,
               and repo-hygiene lanes.
-dab/          the Rust speculative-execution gateway and its independent verifier.
+dab/          the Rust DAB V1 local socket prototype and its independent verifier;
+              current wired scope is documented in docs/architecture/DAB_RUNTIME_STATUS.md.
 verifiers/    independent Node and Python receipt verifiers, used for E5 agreement.
 proofs/       TLA+ specifications, their seeded mutants, and recorded TLC logs.
 apps/         user-facing API handlers and console feature surfaces.
@@ -540,10 +551,11 @@ supporting / exploratory / process / non-research, and CI fails if a document is
 unclassified. **Eight are core**; 25 supporting, 5 exploratory, 5 process. Start with the
 core set.
 
-Suite state, re-measured 2026-08-12: **1,425 tests passing, 9 skipped, across 172 test
-files**, and `scan:claims` over 860 files with 0 violations. This supersedes the 1,274 / 165 figure recorded
-on 2026-08-11; the four documents that pin that number against each other were updated in the
-same change, because updating one of them alone is the drift their guard exists to catch.
+Test and claim-scan totals are commit-relative rather than a permanent badge.
+The paper evidence snapshot records a lower-bound test expectation, a tracked-
+source scan, and the commands used to derive them; a current run must be green
+and must not fall below that snapshot. See
+[`docs/paper/evidence-snapshot.v1.json`](docs/paper/evidence-snapshot.v1.json).
 
 ---
 
@@ -569,10 +581,6 @@ cd dab/gateway && cargo clippy --locked --all-targets -- -D warnings && cargo te
 ```
 
 ```bash
-curl -fsSL -o tla2tools.jar https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar
-```
-
-```bash
 bash tools/proofs/run-tlc.sh
 ```
 
@@ -586,7 +594,16 @@ Every locally implementable checklist gate, including CDK synthesis but excludin
 npm run checklist:local
 ```
 
-The full honest reproduction, stage by stage, with a per-stage status report:
+The manuscript evidence replay (E2/E3/E4, TLC, tests, and a tracked-source
+claim scan):
+
+```bash
+make paper-evidence
+```
+
+The broader legacy artifact report, which does **not** rerun E2/E3/E4 and may
+record quarantined DAB benchmark material, is separate and is not a manuscript
+reproduction command:
 
 ```bash
 make reproduce
@@ -656,7 +673,7 @@ not imply deployed-environment operation.
 | E12 real-traffic incidence | Complete | Research | Falsifier F2 attacked directly and **confirmed**; producer-clustered n = 16 bounds no rate |
 | E13 kernel composition | Complete locally | Research | Exhaustive over a four-document model plus nine real hops; repair-impossibility argued and measured |
 | Rust gateway and verifier in CI | Complete | Research | clippy `-D warnings`, `--locked`; previously unguarded entirely |
-| TLA+ specs + mutants in CI | Complete | Research | 5 baselines pass and 5 mutants must violate; `proofs/cloud/*` remain unchecked stubs |
+| TLA+ specs + mutants in CI | Complete | Research | 6 clean baselines and 5 violating mutants recorded; 5 paired baseline/mutant checks gate two-sided invariants, while `DAB_ExecutionBoundary` is one-sided; `proofs/cloud/*` remain unchecked stubs |
 | Real-traffic kernel frequency | Measured, not narrowed | Research | E12 confirmed F2. The claim contracted rather than the evidence growing |
 | Named consumer that distinguishes a pair | Measured locally | Research | E16 observes different decisions under its recorded, version-pinned policies; existence, not prevalence |
 | E14 verifier over third-party primitives | Complete locally | Research | 31/31 agreement with an arm whose cryptography is OpenSSL's and whose canonicalizer is CPython's; rule sequencing still authored here |

@@ -1,26 +1,49 @@
 # Nitro Enclave Isolation Architecture
 
 > **Epistemic Status Block:**
-> - Memory Encryption: `[DOCUMENTED_DESIGN]` (Hardware limits acknowledged)
-> - NSM Attestation: `[LIVE_AWS_VALIDATED]` (Cryptographically verified in CI)
-> - Ring 0 eBPF Filtering: `[MOCK_INTERFACE]` (Simulated in Node.js testing)
+> - Memory Encryption: `[DOCUMENTED_DESIGN]` only
+> - NSM Attestation: `[NOT_IMPLEMENTED]` — no live AWS validation or CI
+>   attestation verification exists
+> - Ring 0 eBPF Filtering: `[UNBUILT_PROTOTYPE]` — it is not a runtime control
+>
+> This is research-only architecture. A prior purported Nitro path was
+> retracted as R8 because it was not a working Linux implementation; see
+> `docs/research/EXPERIMENTS.md`. No DAB V1 socket execution is enclaved,
+> attested, or protected by an OCC ledger in this document's sense. The current
+> local runtime boundary is
+> [`DAB_RUNTIME_STATUS.md`](../architecture/DAB_RUNTIME_STATUS.md).
 
-This document details the transition blueprint for Ghost-Ark's runtime isolation, migrating from native Linux Virtual File System (VFS) and namespaces (cgroups) into hardware-enforced AWS Nitro Enclaves. This architectural upgrade binds execution memory states to a cryptographically sealed environment, rendering host-level inspection computationally infeasible under AES-256-GCM bounds, physically precluding any compromised host OS kernel from tampering with the OCC state ledger.
+This document records a proposed transition blueprint for a future runtime
+isolation design. It does not describe a deployed or locally runnable
+architecture. If implemented and independently validated, an enclave boundary
+could bind selected execution measurements to an attestation model; it would
+not by itself prove host-compromise immunity, semantic correctness, or runtime
+enforcement of the unimplemented OCC design.
 
 ## 1. The Architectural Boundary Shift
 
-Currently, Ghost-Ark relies on `cgroup v2` limits and strict POSIX file permissions (`0600`) on a local UNIX domain socket (`/run/ghost-ark/ebpf-ledger.sock`) to securely identify agents and isolate the `ScopedMutationGate` IPC traffic.
+Historical sketches referred to `cgroup v2`, POSIX permissions, and a local
+socket as if they were an isolation boundary. They are not a deployed
+Ghost-Ark DAB V1 control, and this repository makes no current agent-identity
+or IPC-isolation claim from them.
 
-Under the AWS Nitro architecture, the primary EC2 instance acts only as an untrusted forwarder. The `ScopedMutationGate` and the core cryptographic ledger are migrated entirely into an isolated Nitro Enclave virtual machine.
+Under a future AWS Nitro architecture, the primary EC2 instance could act as
+an untrusted forwarder and a specified `ScopedMutationGate` plus ledger could
+reside in an isolated enclave virtual machine. No such migration exists here.
 
 ### The AF_VSOCK Bridge
-Nitro Enclaves have **no persistent storage, no interactive access, and no external networking**. The *only* communication vector between the parent EC2 instance (where the non-deterministic agent payloads execute) and the isolated Enclave (where Ghost-Ark evaluates boundaries) is the virtual socket (`AF_VSOCK`).
+Nitro Enclaves have **no persistent storage, no interactive access, and no external networking**. In a future design, the communication vector between the parent EC2 instance and an isolated enclave would be a virtual socket (`AF_VSOCK`).
 
-Ghost-Ark's `AgentExecRequest` payloads will be multiplexed over an `AF_VSOCK` connection. A proxy daemon on the parent EC2 instance intercepts local agent requests and streams them over the vsock channel to the Enclave.
+The proposal would multiplex `AgentExecRequest` payloads over an `AF_VSOCK`
+connection. It does not ship a proxy daemon, vsock transport, or attestation
+verifier.
 
 ## 2. Cryptographic Attestation via NSM
 
-To enforce the Enclave boundary subject to the NSM (Nitro Security Module) attestation signature scheme, verified out-of-band, Ghost-Ark leverages the Nitro Security Module (NSM). 
+To enforce an enclave boundary subject to the NSM (Nitro Security Module)
+attestation signature scheme, a future implementation would need to use the
+Nitro Security Module (NSM) and an independently tested verifier. Ghost-Ark
+does not currently implement that flow.
 
 1. Upon boot, the Enclave generates an RSA/ECC keypair inside its encrypted memory.
 2. The Enclave requests an **Attestation Document** from the underlying Nitro Hypervisor.
@@ -28,11 +51,15 @@ To enforce the Enclave boundary subject to the NSM (Nitro Security Module) attes
 4. The parent EC2 instance routes this Attestation Document to **AWS KMS**.
 5. AWS KMS cryptographically verifies the hypervisor signature and the PCR measurements. If the Ghost-Ark daemon is un-tampered, KMS provisions the decryption keys required to manage the OCC ledger back over the `AF_VSOCK` encrypted tunnel.
 
-Any tampering with the Ghost-Ark binary on disk changes the PCR hash, causing AWS KMS to instantly sever cryptographic access.
+In a correctly implemented and policy-pinned flow, a measurement mismatch
+should prevent key release. This document records that requirement; it is not
+evidence that Ghost-Ark or AWS KMS has enforced it.
 
 ## 3. Hardware-Blinded Agent Isolation (Mermaid Schematic)
 
-The following schematic demonstrates the physical isolation boundary. A hijacked agent executing on the parent EC2 instance is fundamentally blinded from manipulating the OCC ledger, as it exists in physically partitioned, encrypted memory inaccessible even to `root` (EUID 0) on the parent instance.
+The following schematic is the specified physical isolation boundary. It does
+not demonstrate a deployed boundary or establish that a hijacked agent is
+blinded from any current Ghost-Ark ledger.
 
 ```mermaid
 flowchart TD

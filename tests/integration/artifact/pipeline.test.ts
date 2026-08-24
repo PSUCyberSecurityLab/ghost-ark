@@ -28,6 +28,9 @@ const REQUIRED_FILES = [
   "scripts/run-attacks.sh",
   "scripts/run-benchmarks.sh",
   "tools/artifact/aec-report.mjs",
+  "tools/paper-evidence.mjs",
+  "docs/paper/evidence-snapshot.v1.json",
+  "docs/paper/evidence-macros.tex",
   "dab/bench/run_all.ts",
   "docs/dissertation/build_paper.sh",
   "docs/dissertation/README.md",
@@ -53,6 +56,9 @@ const REQUIRED_MAKE_TARGETS = [
   "benchmark",
   "dissertation",
   "artifact-report",
+  "paper-evidence",
+  "paper-evidence-check",
+  "paper-evidence-render",
   "ci-check",
   "reproduce",
   "clean",
@@ -98,6 +104,26 @@ describe("artifact-evaluation pipeline", () => {
     expect(src).toMatch(/DAB_NonceLedger_Mutant:violation/);
     // It must not rewrite the LaTeX operator in the committed specs.
     expect(src).not.toMatch(/sed .*setminus/);
+  });
+
+  it("keeps paper evidence separate from the quarantined DAB bench harnesses", () => {
+    const source = readFileSync(at("tools/paper-evidence.mjs"), "utf8");
+    const replayRunner = source.slice(source.indexOf("function runEvidence"), source.indexOf("function usage"));
+    expect(source).toContain("experiment:e2");
+    expect(source).toContain("experiment:e3");
+    expect(source).toContain("experiment:e4");
+    expect(source).toContain("scripts/run-proofs.sh");
+    expect(source).toContain("check-forbidden-claims.mjs");
+    expect(replayRunner).not.toMatch(/dab\/bench|run-attacks\.sh|run-benchmarks\.sh/u);
+  });
+
+  it("reports the current attacks-summary schema without turning the quarantined smoke run into evidence", () => {
+    const source = readFileSync(at("tools/artifact/aec-report.mjs"), "utf8");
+    expect(source).toContain("attacks?.gating_evidence?.root_security");
+    expect(source).toContain("attacks?.quarantined_smoke?.dab_bench");
+    expect(source).toContain("non-gating, not evidence");
+    expect(source).not.toContain("attacks.root_security?.passed");
+    expect(source).not.toContain("attacks.dab_bench?.all_passed");
   });
 
   it("committed DAB reference logs record the real TLC verdicts", () => {

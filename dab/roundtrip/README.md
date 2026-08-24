@@ -30,7 +30,7 @@ bash dab/roundtrip/run_in_docker.sh     # pinned rust:1-slim, no host toolchain
 bash dab/roundtrip/run_roundtrip.sh
 ```
 
-## Full socket transport E2E (real `/ipc/dab.sock`)
+## Full socket transport E2E (real Unix-domain socket)
 
 `run_roundtrip.sh` uses the hermetic `emit-receipt` mode. For the complete
 path — a real agent client driving the running gateway over the Unix socket,
@@ -41,13 +41,16 @@ bash dab/roundtrip/run_socket_e2e_in_docker.sh
 ```
 
 It starts the gateway (`dab-gateway`), a stand-in tool sink (`dab-sink`), and a
-real agent client (`dab-agent`, `dab/gateway/src/bin/dab-agent.rs`), then checks
-three things over the socket (recorded in
+real agent client (`dab-agent`, `dab/gateway/src/bin/dab-agent.rs`). The gateway
+normally uses `/ipc/dab.sock`; this harness overrides that path into a temporary
+directory under `dab/roundtrip/` so it leaves no host IPC state behind. It then
+checks four things over the socket (recorded in
 [`RECORDED_SOCKET_E2E.txt`](RECORDED_SOCKET_E2E.txt)):
 
-| # | Over `/ipc/dab.sock` | Expected |
+| # | Over the Unix-domain socket | Expected |
 |---|----------------------|----------|
 | 1 | agent sends honest declaration | `CERTIFIED` → independent verifier `VERIFIED` |
+| 1b | gateway POSTs the certified payload | sink-captured body byte-for-byte equals decoded payload |
 | 2 | agent replays the same nonce | `REPLAY_REJECTED` (wired `ReplayLedger.consume` returns false) |
 | 3 | agent declares `c_i` ≠ payload bytes | `MUTATION_DETECTED_HALT` |
 
@@ -88,3 +91,7 @@ variants are each rejected with the specific error).
 - `c_e` is a SHA-256 of the payload bytes: a byte-consistency check, not a
   semantic judgment. `policy_digest` binds *which* Tier-0 policy governed the
   decision; it does not assert the policy is correct, complete, or safe.
+- The socket harness captures the actual HTTP request body and checks it equals
+  the decoded bytes used for `c_e`. DAB Tier-0 V1 still does **not** include the
+  target destination in its signed receipt message, so this is not an attestation
+  of the destination or of target-side effects.

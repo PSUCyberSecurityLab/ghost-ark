@@ -1,4 +1,5 @@
-import { lstatSync, readFileSync, readdirSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { lstatSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { basename, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -7,6 +8,7 @@ const scannableExtensions = new Set([
   ".mdx",
   ".ts",
   ".tsx",
+  ".mts",
   ".js",
   ".mjs",
   ".json",
@@ -15,6 +17,9 @@ const scannableExtensions = new Set([
   // Manuscript sources are public claim text and must pass the same gate.
   ".tex",
   ".bib",
+  ".tf",
+  ".cfg",
+  ".html",
   // Build orchestration and shell entrypoints are reviewer-facing claim text.
   // Before these were added, Makefile echo banners ("REVIEW STATUS: ...") and
   // script narration sat entirely outside the gate.
@@ -34,6 +39,12 @@ function isScannableName(name) {
     name === "Dockerfile" ||
     name.startsWith("Dockerfile.")
   );
+}
+
+/** Return whether a repository-relative path is in the public claim surface. */
+export function isScannablePath(path) {
+  const name = basename(path);
+  return !skippedFiles.has(name) && (scannableExtensions.has(extensionOf(path)) || isScannableName(name));
 }
 
 const skippedDirectories = new Set([
@@ -637,7 +648,7 @@ export function collectScannableFiles(rootDir) {
       return;
     }
 
-    if (scannableExtensions.has(extensionOf(path)) || isScannableName(name)) {
+    if (isScannablePath(path)) {
       files.push(path);
     }
   }
@@ -646,12 +657,77 @@ export function collectScannableFiles(rootDir) {
   return files.sort((a, b) => a.localeCompare(b));
 }
 
+/**
+ * Scan exactly the tracked source tree for a release-bound evidence snapshot.
+ *
+ * The default scanner intentionally walks a working tree so an untracked draft
+ * cannot evade a contributor's local claim gate. A manuscript snapshot needs a
+ * different, deterministic population: the files represented by its recorded
+ * Git revision. Keep the modes separate rather than weakening the default.
+ */
+export function collectTrackedScannableFiles(rootDir) {
+  const root = resolve(rootDir);
+  const topLevel = resolve(
+    execFileSync("git", ["-C", root, "rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim(),
+  );
+  // macOS commonly exposes the same temporary directory under both /var and
+  // /private/var. Compare canonical paths so an otherwise valid Git root does
+  // not fail merely because the caller reached it through that symlink.
+  if (realpathSync(topLevel) !== realpathSync(root)) {
+    throw new Error(`--tracked requires the Git worktree root; received ${root}.`);
+  }
+
+  const tracked = execFileSync("git", ["-C", root, "ls-files", "-z"], { encoding: "utf8" })
+    .split("\0")
+    .filter((entry) => entry.length > 0);
+  const files = [];
+
+  for (const relativePath of tracked) {
+    if (!isScannablePath(relativePath)) {
+      continue;
+    }
+    const absolutePath = resolve(root, relativePath);
+    const normalizedRelative = relative(root, absolutePath);
+    if (normalizedRelative.startsWith("..") || normalizedRelative === "") {
+      throw new Error(`Tracked path escapes scanner root: ${relativePath}`);
+    }
+    const stat = lstatSync(absolutePath);
+    if (stat.isSymbolicLink()) {
+      // The working-tree scanner has the same policy: do not follow a tracked
+      // link into a path the repository does not own.
+      continue;
+    }
+    if (!stat.isFile()) {
+      throw new Error(`Tracked claim-surface path is not a regular file: ${relativePath}`);
+    }
+    files.push(absolutePath);
+  }
+
+  return files.sort((a, b) => a.localeCompare(b));
+}
+
 export function main(argv = process.argv.slice(2)) {
-  const rootDir = resolve(argv[0] ?? process.cwd());
+  let tracked = false;
+  let rootArgument = null;
+  for (const argument of argv) {
+    if (argument === "--tracked") {
+      tracked = true;
+    } else if (argument.startsWith("--")) {
+      console.error(`Forbidden claim scan failed closed: unknown option ${argument}`);
+      return 1;
+    } else if (rootArgument === null) {
+      rootArgument = argument;
+    } else {
+      console.error("Forbidden claim scan failed closed: expected at most one root path.");
+      return 1;
+    }
+  }
+  const rootDir = resolve(rootArgument ?? process.cwd());
 
   try {
-    const files = collectScannableFiles(rootDir);
+    const files = tracked ? collectTrackedScannableFiles(rootDir) : collectScannableFiles(rootDir);
     const violations = files.flatMap((file) => scanFile(file, rootDir));
+    const population = tracked ? "tracked scannable" : "scannable";
 
     if (violations.length > 0) {
       console.error("Forbidden assurance overclaims detected:");
@@ -659,13 +735,13 @@ export function main(argv = process.argv.slice(2)) {
         console.error(`- ${formatViolation(violation)}`);
       }
       console.error(
-        `\nChecked ${files.length} scannable files. ${violations.length} forbidden claim violation(s) found.`,
+        `\nChecked ${files.length} ${population} files. ${violations.length} forbidden claim violation(s) found.`,
       );
       return 1;
     }
 
     console.log(
-      `Checked ${files.length} scannable files. No forbidden assurance overclaims detected.`,
+      `Checked ${files.length} ${population} files. No forbidden assurance overclaims detected.`,
     );
     return 0;
   } catch (error) {

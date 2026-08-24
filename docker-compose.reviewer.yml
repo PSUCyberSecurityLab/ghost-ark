@@ -1,7 +1,7 @@
 # Ghost-Ark — reviewer environment (USENIX Artifact Evaluation)
 #
 #   docker compose -f docker-compose.reviewer.yml build
-#   docker compose -f docker-compose.reviewer.yml run --rm reviewer make reproduce
+#   docker compose -f docker-compose.reviewer.yml run --rm reviewer make paper-evidence
 #
 # `reviewer` is the hermetic image (Dockerfile.reviewer). `localstack` provides
 # local DynamoDB/KMS/S3 so no AWS account or credentials are needed. The local
@@ -42,7 +42,7 @@ services:
     volumes:
       # Surface the generated reports/artifacts back to the host for inspection.
       - ./artifacts:/work/artifacts
-    command: ["make", "reproduce"]
+    command: ["make", "paper-evidence"]
 
 volumes:
   localstack_data:

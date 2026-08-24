@@ -182,15 +182,16 @@ on the first thing a reviewer checks.
 
 - npm run lint passes
 
-- npm test passes: 172 test files, 1434 tests (1 file / 9 tests skipped), re-measured 2026-08-12 (supersedes 165 / 1274 of 2026-08-11).
-  Commit-relative by construction — re-measure, and treat only a *decrease* as suspicious.
+- npm test passes: 172 test files, 1,434 tests (1 file / 9 tests skipped) in the recorded green snapshot measured 2026-08-12 (supersedes 165 / 1274 of 2026-08-11).
+  Treat it as a lower-bound snapshot, not an exact live total: re-measure before quoting, require the current suite to be green, and treat only a *decrease* as suspicious.
   **This line read "162 files, 1253 tests, passes" on 2026-08-04 while `npm test` was
   actually RED**: `publicInterface.test.ts` exceeded the 15s timeout and failed
   deterministically, in isolation, on a clean tree. See the ReDoS entry below. The suite
   was not re-run after the commit that broke it.
 
-- npm run scan:claims: 840 files scanned, 0 forbidden-claim violations (2026-08-11).
-  Commit-relative like the test count: adding any scannable file changes it.
+- Claim scanner: the 2026-08-14 evidence snapshot records 942 tracked files and 0 forbidden-claim violations via
+  `node tools/research/check-forbidden-claims.mjs --tracked`. The ordinary `npm run scan:claims` count is working-tree-relative;
+  do not quote it as an exact live total. Both counts change when scannable files are added or removed.
 
 - npm audit: 5 advisories (3 high, 2 moderate), all dev-only, measured 2026-08-06. This
   figure has been wrong twice. It drifts **without any local change**, because advisories
@@ -201,10 +202,11 @@ on the first thing a reviewer checks.
 
 - npm run assumptions: 7 annotated modules, 0 lattice violations
 
-- cargo test --locked: 30 Rust tests pass across 4 crates — 13 dab/gateway + 13 dab/verifier
+- cargo test --locked: 33 Rust tests pass across 4 crates — 16 dab/gateway + 13 dab/verifier
   + 4 tools/experiments + 0 tools/experiments-json (that crate has **no tests**); clippy clean
-  under -D warnings. Measured 2026-08-02. This line previously read "26 ... (13 + 13)", counting
-  two crates and omitting the other two.
+  under -D warnings. Re-measured 2026-08-14 after the gateway's decoded-egress
+  byte-binding tests were added. This line previously read "26 ... (13 + 13)",
+  counting two crates and omitting the other two.
 
 - tools/proofs/run-tlc.sh: 5 TLA+ baselines clean, 5 mutants violate as required
   (measured 2026-08-12; previously 4+4). Note the two runners disagree in scope and
@@ -881,4 +883,3 @@ fails any document that states a different one.
 Do not report a step complete without its acceptance output. "Should work" and
 "works locally" have both been false in this repository within the last month —
 the latter cost 40+ consecutive red CI runs.
-

@@ -1,30 +1,32 @@
 # Ghost-Ark — hermetic reviewer image (USENIX Artifact Evaluation)
 #
-# Everything a reviewer needs to run `make reproduce` with no host setup:
-#   Node 22 (matches the repo engines + CI; enables native .ts execution),
-#   OpenJDK 21 (+ pinned tla2tools) for TLC, Rust stable for the DAB TCB,
+# Everything a reviewer needs to run `make paper-evidence` with no host setup:
+#   exact Node v22.22.3 (checksum-verified; enables native .ts execution),
+#   OpenJDK 21 (+ checksum-verified tla2tools) for TLC, exact Rust 1.97.1
+#   for the DAB TCB,
 #   pandoc + latexmk + TeX Live for the dissertation, jq/graphviz/python3.
 #
-# Note on Node version: the directive suggested Node 20, but the repository's own
-# `engines` (>=22) and .github/workflows/ci.yml both target Node 22, and Node 22
-# runs the DAB TypeScript benches directly via --experimental-strip-types with no
-# extra tooling. We pin 22 for consistency and reproducibility.
+# The paper-evidence snapshot records Node v22.22.3, Rust 1.97.1, and
+# tla2tools v1.7.4. Do not replace these with moving major-version channels:
+# evidence cannot be replayed against an unidentified toolchain.
 #
 # Build:  docker build -f Dockerfile.reviewer -t ghost-ark-reviewer .
-# Run:    docker run --rm -it ghost-ark-reviewer make reproduce
+# Run:    docker run --rm -it ghost-ark-reviewer make paper-evidence
 
 FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
-    NODE_MAJOR=22 \
-    RUST_VERSION=1.82.0 \
+    NODE_VERSION=22.22.3 \
+    NODE_LINUX_X64_SHA256=2e5d13569282d016861fae7c8f935e741693c269101a5bebcf761a5376d1f99f \
+    NODE_LINUX_ARM64_SHA256=1c4a9933a5e45bc88f54f70b5f91232c127ec49f1a5989d23fb85824c7adf9b7 \
+    RUST_VERSION=1.97.1 \
     TLA_TOOLS_VERSION=v1.7.4 \
     TLA_TOOLS_SHA256=936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88 \
     CARGO_HOME=/opt/cargo \
     RUSTUP_HOME=/opt/rustup \
-    PATH=/opt/cargo/bin:/usr/local/bin:/usr/bin:/bin
+    PATH=/opt/node/bin:/opt/cargo/bin:/usr/local/bin:/usr/bin:/bin
 
 # --- OS packages (pinned where practical) -------------------------------------
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -37,12 +39,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       texlive-fonts-recommended texlive-science lmodern \
     && rm -rf /var/lib/apt/lists/*
 
-# --- Node 22 (NodeSource) -----------------------------------------------------
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y --no-install-recommends nodejs \
-    && rm -rf /var/lib/apt/lists/* \
-    && corepack enable \
-    && node --version && npm --version
+# --- Node v22.22.3 (official archive, checksum-verified) ----------------------
+# Use dpkg's architecture name rather than a mutable distribution channel. Both
+# supported Linux archives have their release SHAs pinned above; failure to
+# identify the architecture or match a digest aborts the image build.
+RUN set -eux; \
+    case "$(dpkg --print-architecture)" in \
+      amd64) node_arch=x64; node_sha="$NODE_LINUX_X64_SHA256" ;; \
+      arm64) node_arch=arm64; node_sha="$NODE_LINUX_ARM64_SHA256" ;; \
+      *) echo "unsupported Node reviewer architecture: $(dpkg --print-architecture)" >&2; exit 1 ;; \
+    esac; \
+    node_archive="node-v${NODE_VERSION}-linux-${node_arch}.tar.xz"; \
+    curl -fsSL -o "/tmp/${node_archive}" "https://nodejs.org/dist/v${NODE_VERSION}/${node_archive}"; \
+    echo "${node_sha}  /tmp/${node_archive}" | sha256sum -c -; \
+    mkdir -p /opt/node; \
+    tar -xJf "/tmp/${node_archive}" --strip-components=1 -C /opt/node; \
+    rm -f "/tmp/${node_archive}"; \
+    corepack enable; \
+    test "$(node --version)" = "v${NODE_VERSION}"; \
+    node --version; npm --version
 
 # --- Rust stable (pinned) for the DAB TCB (dab/gateway, dab/verifier) ----------
 RUN curl -fsSL https://sh.rustup.rs | sh -s -- -y \
@@ -77,4 +92,4 @@ RUN npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 # credential-shaped values into an ENV layer). The local reproduction path
 # requires no AWS credentials at all.
 
-CMD ["make", "reproduce"]
+CMD ["make", "paper-evidence"]

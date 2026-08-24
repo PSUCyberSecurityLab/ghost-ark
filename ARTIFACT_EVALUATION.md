@@ -1,233 +1,175 @@
 # Ghost-Ark — Artifact Evaluation
 
-This is the entry point for USENIX Security AEC reviewers. If you read only one
-file, read this one.
+This is an AEC-oriented review guide, not a venue selection or a claim that a
+particular venue class has been applied. The submission metadata and venue class
+remain a maintainer decision.
 
 Ghost-Ark is an AWS-native reference implementation for **bounded governance
 receipts and deterministic enforcement primitives** around LLM/agentic AI
-applications. DAB (Declarative Action Binding) is its Tier-0 execution-consistency
-subsystem. The CC-Framework is the measurement science for correlated guardrail
-failure.
+applications. DAB (Declarative Action Binding) is its Tier-0
+execution-consistency subsystem. The CC-Framework is measurement science for
+correlated guardrail failure.
 
 > **Claim boundary.** Ghost-Ark provides cryptographic receipts and bounded
-> governance evidence. It verifies what was recorded, signed, policy-bounded, and
-> replayable under Ghost-Ark verifier rules. It does **not** prove semantic
+> governance evidence. It verifies what was recorded, signed, policy-bounded,
+> and replayable under Ghost-Ark verifier rules. It does **not** prove semantic
 > safety, truth, compliance, alignment, production readiness, or deployment
 > correctness.
 
 ---
 
-## ⚠️ Current status — read before you run
+## Current reviewer route — read before running anything
 
-This artifact is **honest first, green second**. `make reproduce` runs real
-commands and records real exit codes. At earlier commits it **exited non-zero**
-because of real, documented blockers, and that red result was published rather
-than patched around. As of 2026-07-16 the previously red gating stages are
-resolved by ordinary reviewed fixes (inventory §7.1–§7.3, §7.6 — kept as
-RESOLVED entries with their history), and the compute stages pass; the
-dissertation-PDF stage still requires the container toolchain. The harness is
-unchanged either way: it reports whatever is true at the commit you run it on.
-
-| Stage | Result today | Why |
-|-------|--------------|-----|
-| Build / typecheck | ✅ pass | — |
-| Claim-language gate | ✅ pass | 0 forbidden-claim phrases at HEAD (`npm run scan:claims`; coverage includes `.tex`/`.bib`, so the conference manuscript is inside the gate) |
-| Proofs — `proofs/tla` | ✅ pass | ProvenanceLattice / SpeculativeCollapse / TransportBoundary + mutants |
-| Proofs — `proofs/dab` | ✅ pass (bounded) | baseline `NoReplays`+`EventualGC` verified and mutant TOCTOU counterexample reproduced (real logs in `proofs/dab/artifacts/`); model↔implementation divergence **closed** — `nonce.rs` now implements the verified tombstone semantics, with a bounded capacity caveat (inventory §7.2) |
-| Unit/integration | ✅ pass (load-tolerant timeout) | 6 CDK-synth tests time out only under default 15s + full-suite load |
-| Attack — root security | ✅ pass | policy fuzzer, negative corpus, tenant boundary |
-| Attack — DAB bench | ⛔ **quarantined, not evidence** | `dab/bench/` is not a measurement of this system: several suites report `detected: true` while invoking no component under test, and the directory imports only `node:crypto` and `node:perf_hooks`. Its own README says so. Superseded by E3/E4 below. Retracted as **R10**; a green result here means nothing |
-| Attack — corpus vs. the real verifier | ✅ pass | `npm run experiment:e3` → 26/26 verifier-intrinsic, 3/3 control arm, 0 undetected; `npm run experiment:e4` → `TAUTOLOGY VERDICT: PASS`, 7 load-bearing checks |
-| Benchmark | ▶ runs | real latency/throughput/overhead numbers exported |
-| Dissertation PDF | ⏸ toolchain-gated | claim gate is green at HEAD; needs pandoc+latexmk (present in the reviewer container); a claim-clean PDF build has not yet been exercised on this host |
-
-Full evidence for each item, with the exact commands, is in
-[`docs/artifact/repository_inventory.md`](docs/artifact/repository_inventory.md)
-§7. None of these are the harness's doing; the harness surfaces them.
-
-**What a reviewer can verify today:** the `proofs/tla` AND `proofs/dab` families
-check cleanly and reproducibly (baselines clean, mutants violating, recorded
-logs committed), the root security suite passes, the malicious corpus is
-rejected by the *real* standalone verifier with a control arm and a metamorphic
-guard proving the detections are load-bearing (E3/E4), the receipt
-verifier/differential tests pass, and the reporting pipeline produces a faithful
-machine-readable summary.
-**What is not yet reproducible or remains open:** DAB empirical claims beyond
-the Tier-0 modeled attacker (no live gateway/TCB evidence; the Rust
-receipt-shape items of inventory §7.5 are "unverified", not "closed"), any
-live-AWS behavior, and a dissertation-PDF build on a host without the
-container toolchain. The conference manuscript (`docs/paper/`) has its own
-claim-gated build (`docs/paper/build.sh`) and claim-to-command map
-(`README-AE.md`).
-
----
-
-## 1. System requirements
-
-- **Linux x86_64** or **Apple Silicon via Docker**. Native macOS also works if you
-  install the toolchain below.
-- To run everything with **zero host setup**, use the container (§4). Otherwise:
-  - Node.js **22** (the repo `engines` and CI target 22; the DAB benches use
-    native `.ts` execution available on 22+)
-  - OpenJDK **≥ 11** (21 recommended) for the TLC model checker
-  - `git`, `make`, `jq`, `curl`, `python3`
-  - Rust stable **only** if you intend to build the DAB Rust TCB (`dab/gateway`,
-    `dab/verifier`) — note there is currently **no `Cargo.lock`**, so
-    `cargo build --locked` will not work until one is generated
-  - `pandoc` + `latexmk` + TeX Live **only** for the dissertation PDF
-
-## 2. Expected runtime
-
-| Path | Approx. wall-clock |
-|------|--------------------|
-| `make proof` (proofs/tla family) | ~15–25 s |
-| `make attack` | ~30–60 s |
-| `make benchmark` | ~5–15 s |
-| `make unit` (full vitest) | ~2.5–3.5 min |
-| `make reproduce` (all, no PDF) | ~4–5 min |
-| Reviewer image build (first time, TeX Live) | ~5–12 min |
-
-The compute-only stages fit the "under five minutes" AE target; the one-time
-container build is dominated by TeX Live.
-
-## 3. Quick start (native)
+The reviewer-facing evidence route is:
 
 ```bash
-make bootstrap        # install deps + fetch pinned tla2tools.jar
-make proof            # TLA+ proofs (proofs/tla and proofs/dab both gate; mutants must violate)
-make attack           # root security suite (pass) + DAB bench (currently red)
-cat artifacts/reports/aec_summary.md   # after `make reproduce`
+make paper-evidence
 ```
 
-## 4. One-command reproduction
+It fails closed over E2, E3, E4, the canonical TLC runner, `npm test`, and the
+tracked-source claim scan. It deliberately does **not** run
+`dab/bench/run_all.ts`, `dab/bench/performance.ts`, or
+`dab/bench/formal_games.ts`. Its commands, toolchain versions, recorded source
+revision, committed raw-TLC-log digests, and generated output paths are defined
+in [`docs/paper/evidence-snapshot.v1.json`](docs/paper/evidence-snapshot.v1.json).
+The snapshot is currently explicitly **unreleased**: a maintainer must tag the
+post-repair committed evidence tree before distribution.
 
-Native:
+`make reproduce` remains a broader, legacy artifact-orchestration command. It
+records build, claim, proof, test, attack, benchmark, dissertation, and report
+stages, including quarantined DAB benchmark smoke material. It does **not**
+rerun E2/E3/E4, so it is not a reproduction command for any manuscript
+headline. Its generated reports are useful diagnostics, not committed evidence.
+
+| Surface | Current status and boundary |
+|---|---|
+| Paper evidence | `make paper-evidence` is the CI-gated reviewer route. Its recorded figures are snapshot-bound, not timeless properties of a changing tree. |
+| Formal evidence | Six clean baselines and five violating mutants are recorded under TLC `v1.7.4`, SHA-256 `936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88`. Five baselines are paired with five mutants; `DAB_ExecutionBoundary` is a clean, one-sided baseline with no mutant. |
+| DAB socket prototype | The Rust socket path has local E2E evidence for decoded-payload binding and the nonce ledger. The TypeScript agent runtime remains unwired. OCC/read-set validation and the semantic gate are unit-tested helpers, not runtime gates. |
+| DAB receipts | The V1 independent verifier accepts signed `CERTIFIED` receipts. Rejection, malformed-input, oversized-input, and execution-failure paths are not signed independently replayable abort receipts; V1 also does not bind an execution target. |
+| Test and claim-scan counts | Counts are commit-relative. The reviewer standard is a green run with tests not below the recorded snapshot and a tracked-source scan, not an alleged exact count. |
+| Cloud path | Local/synth/research evidence only. No live-AWS, KMS, Nitro, or deployment evidence is bundled. |
+
+## 1. Requirements
+
+- Node.js `v22.22.3` (the exact reviewer-image archive digests are in the
+  evidence snapshot)
+- Rust `1.97.1` for the recorded Rust stress context and the reviewer image
+- Java 11 or newer for TLC (the reviewer image uses Java 21)
+- `git`, `make`, and `python3`
+- A TeX runtime only to build a PDF; it is not part of the evidence gate
+
+Both DAB Rust crates commit lockfiles and are tested with `cargo test --locked`.
+No AWS credentials or deployment command is required for the local reviewer
+route.
+
+## 2. Reproduce the paper evidence
+
+```bash
+npm ci
+make paper-evidence
+```
+
+For the hermetic reviewer image:
+
+```bash
+docker compose -f docker-compose.reviewer.yml build
+docker compose -f docker-compose.reviewer.yml run --rm reviewer
+```
+
+The target writes fresh TLC and summary output under `artifacts/`, which is
+generated and ignored. Reviewers should inspect the committed raw TLC logs
+listed with digests in the evidence snapshot (for example,
+`proofs/dab/artifacts/DAB_NonceLedger.tlc.txt`), then compare a fresh generated
+run to them. Do not treat `artifacts/proofs/logs/` as a committed path.
+
+### What the target checks
+
+1. E2 measures verification cost on the declared host with p50 and IQR.
+2. E3 exercises the real standalone verifier with its control arm.
+3. E4 checks that E3 detections stop when their mechanism is deliberately
+   broken.
+4. TLC checks the bounded models under the snapshot’s pinned toolchain.
+5. `npm test` must be green and must not fall below the recorded test snapshot.
+6. The claim scan runs over tracked scannable source, so generated files do not
+   silently alter the denominator.
+
+The gate is intentionally narrow. It provides no evidence for live AWS
+behavior, semantic correctness, execution-target binding, or unsigned aborts.
+
+## 3. Formal evidence
+
+Run the canonical runner directly if a focused TLC replay is useful:
+
+```bash
+bash scripts/run-proofs.sh
+```
+
+The runner fetches only the stable `tla2tools v1.7.4` pin above and rejects a
+digest mismatch. It creates fresh output in `artifacts/proofs/logs/` and a
+generated summary in `artifacts/proofs/proofs_summary.json`; neither is a
+committed evidence path. The committed raw logs are under
+`proofs/tla/artifacts/` and `proofs/dab/artifacts/`, with file digests in the
+evidence snapshot.
+
+The 6/5 total is not a claim that every baseline has a mutant. The five paired
+baseline/mutant checks gate two-sided invariants. `DAB_ExecutionBoundary` is
+clean over its bounded model but has no seeded mutant, so its evidence is
+one-sided and must be reported as such.
+
+## 4. Quarantined benchmark material
+
+`dab/bench/` is retained for forensic and historical purposes. It is
+quarantined because several historical "detection" results did not invoke the
+component they purported to measure. No latency, throughput, attacker-advantage,
+or detection result from that directory is evidence about Ghost-Ark. Retraction
+R10 in [`docs/research/EXPERIMENTS.md`](docs/research/EXPERIMENTS.md) preserves
+the history and explains the replacement E2/E3/E4 evidence.
+
+`make reproduce`, `make attack`, and `make benchmark` may still execute or
+record this material as non-evidential diagnostics. That does not make it part
+of the paper-evidence gate.
+
+## 5. Legacy artifact report (not paper evidence)
+
+For an audit of the historical broad orchestration only:
 
 ```bash
 make reproduce
 ```
 
-Fully hermetic (no host setup beyond Docker):
+It writes generated status and report files under `artifacts/`. These outputs
+describe what that orchestration observed on the current machine; they neither
+replace the snapshot nor establish manuscript claims. In particular, its attack
+and benchmark stages are not substitutes for E2/E3/E4.
 
-```bash
-docker compose -f docker-compose.reviewer.yml build
-docker compose -f docker-compose.reviewer.yml run --rm reviewer make reproduce
-# reports appear on the host under ./artifacts/reports/
-```
+## 6. Historical record and open limitations
 
-`make reproduce` runs: **build → claims → proof → unit → attack → benchmark →
-dissertation → artifact-report**, writing per-stage status to `artifacts/status/`
-and a rolled-up report to `artifacts/reports/aec_summary.{json,md}`. It prints the
-USENIX report banner and exits 0 **iff** every gating stage passed.
+The Phase-1 audit history is intentionally retained in the repository rather
+than erased. Read [`docs/artifact/STATUS_AND_LIMITATIONS.md`](docs/artifact/STATUS_AND_LIMITATIONS.md),
+[`docs/artifact/REVIEWER_ATTACK_SHEET.md`](docs/artifact/REVIEWER_ATTACK_SHEET.md),
+and the retractions in `docs/research/EXPERIMENTS.md` for historical failures
+and their correction dates.
 
-Useful env: `GHOST_AEC_QUICK=1` (smaller trial counts), `GHOST_SKIP_DISS=1` (skip
-the PDF), `VITEST_TIMEOUT_MS=60000` (unit-test timeout).
+The active limitations that matter before distribution are:
 
-## 5. Benchmark interpretation
+- OCC and semantic gating are not wired into the runtime execution path.
+- V1 supplies no signed, verifier-accepted rejection receipts and does not bind
+  an execution target.
+- The socket E2E uses a local Rust driver and sink; it is not a full cloud or
+  TypeScript-agent deployment path.
+- Formal checks are bounded models, not a proof of implementation or deployment
+  behavior.
+- The evidence snapshot is not yet associated with an immutable release tag.
 
-`make benchmark` writes `artifacts/benchmarks/`:
+## 7. Troubleshooting
 
-- `performance.json` — baseline/commitment/verification/end-to-end latency
-  (p50/p95/p99), throughput (ops/sec), and `overhead_percent` (end-to-end vs.
-  baseline).
-- `formal_games.json` — four security games, each with an attacker `advantage`
-  (fraction of trials the modeled attacker "wins") and per-game latency.
-- `benchmarks_summary.json` — a digest.
-
-**Caveat (do not skip):** these files are outputs of `dab/bench/`, which is
-**quarantined and is not evidence about this system** — several of its suites
-report `detected: true` without invoking any component under test, so a green
-attacker-advantage figure there is a restatement of how its own fixtures were
-built. Read `formal_games.json` as a calculation over the file's own declared
-attacker model, and `performance.json` as superseded by `npm run experiment:e2`
-(which reports p50 with IQR against a declared baseline). Retracted as **R10**
-in `docs/research/EXPERIMENTS.md`. Historical note: an earlier revision
-of the benchmark scored two suites backwards (a detected replay counted as an
-attacker win), and this artifact published that red result until the
-accounting fix landed (`cd66782`); the episode is preserved in inventory §7.6
-and disclosed in the manuscript (§5.4) because an evaluation pipeline that
-cannot be caught being wrong cannot be trusted when it says it is right.
-
-## 6. Threat model (as modeled)
-
-- **DAB execution consistency**: an untrusted agent runtime declares an action
-  commitment `C_I`; a separate gateway independently derives `C_E` from the bytes
-  it will execute and refuses to execute unless `C_I == C_E`, with nonce-based
-  replay rejection. Modeled attacker: in-flight payload/AST mutation, replay,
-  serialization/Unicode collision, cross-transaction confusion.
-- **IFC provenance lattice**: data triggering an action must carry sufficient
-  cryptographic clearance (meet-based delegation admission), modeling indirect
-  prompt-injection "trust laundering."
-- **Receipts**: KMS/HMAC-signed decision receipts with deterministic canonical
-  JSON, replayable by an independent verifier (Node and Python).
-
-What is **out of scope / not claimed**: semantic correctness of model output,
-alignment, compliance certification, hardware attestation (no live Nitro flow),
-and the full AWS cloud path (no live-AWS evidence bundled here).
-
-## 7. Known limitations (authoritative list: inventory §7)
-
-1. ~~`proofs/dab/*.tla` are invalid TLA+ / baseline violates `NoReplays`~~ —
-   **RESOLVED at the spec level** (inventory §7.1–7.2): specs repaired with
-   tombstone semantics, TLC clean over the complete bounded space, mutant
-   counterexample kept as regression. Caveats: the tombstone set is
-   capacity-bounded (500,000; §7.2), and the tombstone *module* (`nonce.rs`) is
-   **not yet wired into the shipped gateway binary** (orphaned; the running
-   gateway uses an inline `HashSet` ledger — §7.2 correction, §7.5 residuals).
-   **Open:** wire `nonce.rs` into `main.rs`.
-2. ~~Claim-language gate RED (dissertation prose)~~ — **RESOLVED** (inventory
-   §7.3): 0 violations at HEAD; scanner coverage extended to `.tex`/`.bib`.
-3. ~~DAB benchmark scores two suites backwards~~ — **RESOLVED** (`cd66782`,
-   inventory §7.6), then **superseded entirely**: the harness was retired from
-   the evidence base for a deeper defect than mis-scoring — several suites
-   invoked no component under test at all (R10). Correct accounting over a
-   tautological check still measures nothing. Detection evidence is now E3/E4.
-4. Full `npm test` needs a raised per-test timeout to avoid load-induced
-   CDK-synth flakiness (the harness sets `--test-timeout=60000`). **Open.**
-5. ~~The DAB container path and `cargo --locked` are broken; the gateway↔verifier
-   receipt round-trip is unverified~~ — **RESOLVED and RECORDED** (inventory §7.5):
-   real ed25519 round-trip closed (`dab/roundtrip/`, recorded transcript,
-   reproducible in a pinned container and on Kubernetes via `dab/k8s/`); both
-   crates commit `Cargo.lock`; `dab/Dockerfile` + a working `docker-compose.yml`
-   added; empty Dockerfiles removed. Residual **open** items: the untrusted
-   agent's Unix-socket transport (agent runtime has no entrypoint) and wiring the
-   tombstone `nonce.rs` into the binary. `make attack`/`make benchmark` still use
-   the TypeScript suites.
-
-## 8. Troubleshooting
-
-- **`java: command not found`** → install a JDK ≥ 11 (or use the container).
-  `make proof` fetches a checksum-pinned `tla2tools.jar` into `.cache/tla/`.
-- **`tla2tools sha256 mismatch`** → a proxy/mirror served a different jar; delete
-  `.cache/tla/tla2tools.jar` and re-run, or set `TLA_TOOLS_JAR` to a trusted copy.
-- **Unit tests time out** → raise `VITEST_TIMEOUT_MS` (default 60000) or run a
-  subset: `npx vitest run tests/unit`.
-- **`pandoc`/`latexmk` missing** → the PDF stage is optional locally; run it in
-  the container: `docker compose -f docker-compose.reviewer.yml run --rm reviewer make dissertation`.
-- **DAB bench prints nothing when run directly** → the per-attack files have no
-  CLI entrypoint; use `node --experimental-strip-types dab/bench/run_all.ts`.
-- **`make reproduce` exits non-zero** → expected at HEAD. Open
-  `artifacts/reports/aec_summary.md` and `docs/artifact/repository_inventory.md`
-  §7; the report lists exactly which gating stages failed and why.
-
-## 9. Expected outputs
-
-After `make reproduce`:
-
-```
-artifacts/
-├── reports/aec_summary.json      # machine-readable roll-up (exit-code source)
-├── reports/aec_summary.md        # human-readable summary
-├── status/*.json                 # per-stage exit/timing/detail
-├── proofs/proofs_summary.json    # TLC results + recorded logs
-├── attacks/attacks_summary.json  # root security + DAB bench
-├── attacks/dab_bench.json        # full DAB bench output
-├── benchmarks/*.json             # latency/throughput/overhead
-└── logs/*.log                    # per-stage stdout+stderr
-docs/dissertation/ghost-ark-usenix.pdf   # only when the claim gate is green
-```
-
-The **source of truth for pass/fail** is `artifacts/reports/aec_summary.json`
-(`.status` = `PASS`/`FAIL`, with `.gating_failures`). A skeptical reviewer can
-inspect every recorded log, replay each TLC run, re-run each suite, and confirm
-the report matches reality — which is the entire point.
+- **TLC cannot start** — install a JDK 11+ and run `bash scripts/run-proofs.sh`;
+  it verifies the pinned jar before use.
+- **Paper-evidence check says outputs are untracked** — render the snapshot
+  outputs, review them, add them to the intended release commit, and tag that
+  immutable commit. Do not bypass the tracking check.
+- **A count differs from the document** — re-run the named command. Test and
+  scan counts are commit-relative; an unexplained decrease is the problem.
+- **A PDF tool is absent** — use the reviewer image or the bundled TeX path.
+  A successful PDF build does not expand runtime evidence.

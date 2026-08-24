@@ -637,7 +637,7 @@ function figProofs() {
   p.push(T(28, sy + 24, "Why the mutant state counts are absent, deliberately.", { size: 12, bold: true }));
   p.push(wrap(28, sy + 44, d.state_count_note, 158, 17, { size: 11, cls: "mut" }));
   p.push(
-    T(28, sy + 100, "Baseline counts are reproducible and are printed. The gate is a yes/no verdict and is unaffected — five baselines must pass and five mutants must violate.", { size: 11, cls: "faint" })
+    T(28, sy + 100, "Six baselines and five mutants are recorded; five paired baselines and their five mutants gate two-sided checks.", { size: 11, cls: "faint" })
   );
 
   p.push(f.close);

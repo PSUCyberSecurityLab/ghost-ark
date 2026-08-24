@@ -1,18 +1,15 @@
 name: artifact-evaluation
 
-# USENIX Artifact Evaluation pipeline. Runs the full honest reproduction and
-# uploads the machine- and human-readable reports plus the dissertation PDF.
+# Artifact-evaluation pipeline. The `paper-evidence` job is the reviewer-facing
+# manuscript gate; the retained legacy AEC orchestration is explicitly separate.
 #
-# Job status reflects the repository's ACTUAL state, whatever it is: `make
-# reproduce` is fail-closed and is never patched around to go green. Reports
-# upload on success OR failure, so a red run is diagnosable rather than silent.
+# Paper evidence is fail-closed: E2/E3/E4, TLC, tests, and the tracked-source
+# scan must all pass. It deliberately excludes the quarantined benchmark
+# programs. The legacy report uploads on success OR failure so a red run remains
+# diagnosable, but it does not establish paper evidence.
 #
-# This comment previously asserted that `make reproduce` exits non-zero "while
-# the known HEAD blockers remain". Those blockers are now recorded as RESOLVED or
-# CLOSED in docs/artifact/repository_inventory.md §7, and AGENTS.md records this
-# workflow green on main as of 2026-08-01 — so the comment was asserting a
-# failure the repository no longer believes in. Read the check-run status, not
-# this header: a workflow file is not evidence about its own last result.
+# Read check-run output and the evidence snapshot for current results. A workflow
+# definition is not evidence about its own most recent status.
 
 on:
   push:
@@ -28,7 +25,43 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  native-reproduce:
+  paper-evidence:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Bootstrap reviewer dependencies and pinned TLC
+        run: make bootstrap
+
+      - name: Replay paper evidence (E2, E3, E4, TLC, tests, tracked scan)
+        run: make paper-evidence
+
+      - name: Upload generated paper-evidence diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: paper-evidence-diagnostics
+          path: |
+            artifacts/paper-evidence/**
+            artifacts/proofs/**
+          if-no-files-found: warn
+          retention-days: 30
+
+  legacy-aec-orchestration:
+    # This is retained for the broad historical artifact report. It is not the
+    # manuscript-evidence gate: it does not run E2/E3/E4 and records quarantined
+    # benchmark material as non-evidential diagnostics.
     runs-on: ubuntu-22.04
     timeout-minutes: 30
     steps:
@@ -55,7 +88,7 @@ jobs:
       - name: Bootstrap (deps + pinned tla2tools)
         run: make bootstrap
 
-      - name: Reproduce (build → claims → proof → unit → attack → benchmark → dissertation → report)
+      - name: Legacy broad report (not manuscript evidence)
         id: reproduce
         run: make reproduce
         # Do not mask the real result; the report step still runs via always().
@@ -68,7 +101,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: aec-artifacts
+          name: legacy-aec-artifacts
           path: |
             artifacts/**
             docs/dissertation/ghost-ark-usenix.pdf
@@ -83,15 +116,13 @@ jobs:
           fi
 
   hermetic-image:
-    # Proves Dockerfile.reviewer is self-sufficient (no host setup) by running
-    # the deterministic gates inside the image.
+    # Proves Dockerfile.reviewer is self-sufficient (no host setup) by replaying
+    # the same paper-evidence gate inside the image.
     runs-on: ubuntu-22.04
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Build reviewer image
         run: docker build -f Dockerfile.reviewer -t ghost-ark-reviewer:ci .
-      - name: Run proofs + attacks inside the hermetic image
-        run: |
-          docker run --rm ghost-ark-reviewer:ci make proof
-          docker run --rm ghost-ark-reviewer:ci make attack
+      - name: Run paper evidence inside the hermetic image
+        run: docker run --rm ghost-ark-reviewer:ci

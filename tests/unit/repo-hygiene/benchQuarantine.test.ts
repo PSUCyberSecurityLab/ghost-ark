@@ -70,6 +70,7 @@ describe("dab/bench quarantine holds", () => {
       "scripts/run-attacks.sh",
       "scripts/run-proofs.sh",
       "scripts/run-benchmarks.sh",
+      "tools/paper-evidence.mjs",
       "Makefile"
     ];
 

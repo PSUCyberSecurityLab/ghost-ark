@@ -6,6 +6,12 @@ these are literature positions, not audits of third-party code. Ghost-Ark's
 own claims below are each bound to committed, replayable artifacts in this
 repository.
 
+For the local DAB V1 runtime rather than the research design, see
+[`DAB_RUNTIME_STATUS.md`](../architecture/DAB_RUNTIME_STATUS.md). In
+particular, the socket path wires payload binding and replay protection; OCC
+and semantic helpers are not runtime-enforced, and V1 does not provide signed
+rejection receipts or target binding.
+
 Claim boundary up front: this document claims (a) a runnable impossibility
 spine, (b) dependence-free bounding plus cohort-scoped measurement of
 correlated guardrail failure, and (c) mechanically enforced claim discipline.
@@ -38,11 +44,11 @@ here lives in that gap.
 | [ATF](https://github.com/massivescale-ai/agentic-trust-framework) (MassiveScale/CSA) | Governance rubric (markdown spec; no code) | Asserted conformance (checklist, RFC 2119) | Alerting required ("60 seconds"); enforcement not required; no correlation treatment | None |
 | [VERA](https://berlinailabs.de/blog/vera-protocol-launch.html) / receipt-layer cluster | Signing sidecars / notarization protocols | Cryptographic signature over actions | Not addressed | None |
 | Enterprise guardrail stacks (e.g., [Microsoft ZT4AI](https://learn.microsoft.com/en-us/entra/fundamentals/zero-trust-ai) + Prompt Shields + Purview) | Identity plane + stacked probabilistic filters | Conditional access + classifier verdicts | Stacked filters; no published treatment of inter-filter failure correlation | None |
-| **Ghost-Ark** | Transactional control plane (ghost replica; ledger + semantic gates enforced; OCC gate specified, not yet runtime-enforced) | Decidable gates + independently replayable evidence, including refutation witnesses | Dependence-free Fréchet bounds at the gate; cohort-scoped correlation measurement via [CC-Framework](https://github.com/Cubits11/cc-framework) | Runnable: Löbian countermodels (GL decision procedure) + Chaitin one-sided comprehension budget |
+| **Ghost-Ark** | Transactional design; local DAB V1 wires payload binding and the replay ledger, while OCC and semantic helpers are unit-tested but not runtime-enforced | A `CERTIFIED` receipt is independently replayable under DAB V1 verifier rules; rejections and target effects are outside that receipt contract | Dependence-free Fréchet bound is a unit-tested helper and specified gate; cohort-scoped correlation measurement via [CC-Framework](https://github.com/Cubits11/cc-framework) | Runnable: Löbian countermodels (GL decision procedure) + Chaitin one-sided comprehension budget |
 
-Statuses in the Ghost-Ark row are the manuscript's own labels (implemented /
-TLC-checked / specified) and inherit its non-claims (docs/paper/main.tex §
-Limitations).
+Statuses in the Ghost-Ark row distinguish local unit evidence, runtime wiring,
+and socket E2E evidence; the authoritative breakdown is the runtime-status
+document above. They inherit the repository's non-claims.
 
 ## 3. Positioning against each class
 
@@ -52,13 +58,14 @@ ATF's Behavior element requires that security events be logged and anomalies
 alert within 60 seconds; it does not require signing, tamper-evidence,
 independent verification, replay protection, or enforcement (blocking) —
 detection suffices for conformance. Ghost-Ark is therefore not a competitor
-but a candidate *evidence and enforcement substrate* for ATF's upper maturity
-tiers: where ATF prescribes segmentation and incident response, this
-repository implements fail-closed admission, speculative collapse (effects do
-not exist until commit), and abort receipts minted at refusal time. ATF's
-promotion gates ("zero critical incidents", sign-offs) are attestations as
-specified; receipts make the underlying record independently checkable —
-trust that is earned needs trustworthy records of the earning.
+but a candidate *evidence and enforcement research substrate* for ATF's upper
+maturity tiers. The specified design calls for fail-closed admission and
+speculative collapse before effects commit. The shipped DAB V1 prototype does
+not implement that full pipeline or mint signed abort receipts: it emits a
+signed receipt only for `CERTIFIED` executions. ATF's promotion gates ("zero
+critical incidents", sign-offs) are attestations as specified; receipts make a
+record independently checkable only within the receipt contract actually
+implemented.
 
 ### B. VERA and the receipt cluster
 
@@ -82,12 +89,13 @@ Stacked probabilistic filters compose; their published guidance does not
 treat the failure correlation between layers, and an independence assumption
 is the optimistic default. The frontier-lab adaptive-attack results (defenses
 reported near 0% attack success later bypassed at >90%) indicate the
-correlated regime is the operative one. Ghost-Ark's semantic gate triggers on
-the Fréchet upper bound — the unique dependence-free envelope — and the
+correlated regime is the operative one. Ghost-Ark's specified semantic gate
+uses the Fréchet upper bound — the unique dependence-free envelope — and the
 CC-Framework provides the measurement side: cohort-scoped co-failure tables,
 phi correlation, and Fréchet intervals over observed guardrail behavior, with
-its own stated non-claims. We bound what composition can hide, and measure
-what it did.
+its own stated non-claims. The local helper computes the bound, but no DAB
+runtime path currently triggers on it. We model what composition can hide, and
+measure what the separate CC-Framework experiment observes.
 
 ## 4. The defensible contributions
 
@@ -98,10 +106,11 @@ what it did.
    (docs/research/LOBIAN_BOUNDARY.md; packages/research-frontier/src/lobian,
    /chaitin; recorded demos committed). This is the *why* of the entire
    receipt category, in executable form.
-2. **Correlated-failure treatment with honest semantics.** Dependence-free
-   Fréchet bounding at the enforcement gate; partial-identification
-   measurement in CC-Framework. No independence assumption anywhere on the
-   claim path.
+2. **Correlated-failure treatment with honest semantics.** A dependence-free
+   Fréchet bounding primitive and specified enforcement gate;
+   partial-identification measurement in CC-Framework. No independence
+   assumption is introduced by the bound itself; it is not a claim that the
+   current DAB socket runtime enforces it.
 3. **Mechanically enforced non-claims.** A claim-language scanner gates the
    repository's own documentation — including the manuscript and this file —
    and the reproduction pipeline publishes its own failures. In a category
@@ -117,6 +126,6 @@ what it did.
 - **Adoption:** ATF has CSA stewardship and independent implementations;
   Microsoft has enterprise distribution; this repository is a single-author
   research artifact with recorded evidence and no deployments.
-- **Runtime completeness:** the OCC gate is specified with a tested receipt
-  schema but not enforced at runtime; live-cloud evidence is absent by
-  declared boundary.
+- **Runtime completeness:** the OCC and semantic helpers are unit-tested but
+  not enforced by the DAB V1 socket path; V1 lacks target binding and signed
+  rejection receipts; live-cloud evidence is absent by declared boundary.
