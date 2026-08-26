@@ -131,7 +131,7 @@
     "lockfile-lint": "5.0.1",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   },
   "overrides": {
     "typed-rest-client": {
