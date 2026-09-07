@@ -1,0 +1,95 @@
+{
+  "schema_version": "ghost-ark.paper-next-evidence.v1",
+  "paper": {
+    "title": "One Canonical Identity, Different Policy Outcomes: A Bounded Measurement of JSON Receipt Semantics",
+    "question": "When does a selected receipt identity preserve a declared downstream equality decision under named policy and validation engines?",
+    "non_claim": "This manifest binds selected paper claims to frozen documentation anchors and generated macros. It does not turn curated experiments into prevalence evidence, ignored local report files into a released bundle, or author-supplied policies into deployed applications."
+  },
+  "frozen_inputs": {
+    "evidence_tag": "evidence-v1",
+    "evidence_revision": "7afe3931335439d2e2af39a1e2b977d3e1f8ce66",
+    "release_tag": "v1.0.0",
+    "release_revision": "eb2248d494d5cea583ae4c4ea35aeefd723ec5b5"
+  },
+  "raw_evidence_boundary": {
+    "status": "limited",
+    "statement": "E12, E13, and E16 generated reports are ignored local artifacts rather than files in the tagged release. Exact paper results are therefore anchored to the tagged experiment record and source, with this limitation carried in the manuscript."
+  },
+  "findings": [
+    {
+      "id": "e1",
+      "kind": "controlled_census",
+      "source": "docs/research/EXPERIMENTS.md",
+      "anchor": "## E1 — Provenance kernel census",
+      "command": "npm run experiment:e1",
+      "values": { "classes": 31, "unguarded_unintended": 5, "strict_unintended": 0, "strict_rejection_asymmetry": 0 }
+    },
+    {
+      "id": "e1b",
+      "kind": "declared_generator_sample",
+      "source": "docs/research/EXPERIMENTS.md",
+      "anchor": "## E1-B — Randomized kernel probe",
+      "command": "npm run experiment:e1b",
+      "values": { "unguarded_successes": 403, "denominator": 767, "unguarded_rate_percent": 52.5, "unguarded_interval": "[49.0%, 56.1%]", "strict_successes": 0, "strict_rate_percent": 0.0, "strict_interval": "[0.0%, 0.5%]" }
+    },
+    {
+      "id": "e7",
+      "kind": "seeded_differential_sample",
+      "source": "docs/research/EXPERIMENTS.md",
+      "anchor": "## E7 — Cross-language differential fuzz",
+      "command": "npm run experiment:e7",
+      "values": { "inputs": 1500, "structural_classes": 8, "underlying_mechanisms": 4 }
+    },
+    {
+      "id": "e11",
+      "kind": "third_party_census",
+      "source": "docs/research/EXPERIMENTS.md",
+      "anchor": "## E11 — Does the kernel result survive canonicalizers this project did not write?",
+      "command": "npm run build:e11-arm && npm run experiment:e11",
+      "values": { "third_party_arms": 4, "classes": 31, "unintended_per_arm": 4, "universal_duplicate_classes": 3 }
+    },
+    {
+      "id": "e12",
+      "kind": "sampled_real_traffic",
+      "source": "docs/research/EXPERIMENTS.md",
+      "anchor": "## E12 — Real-traffic kernel incidence (Arm E)",
+      "command": "npm run experiment:e12 -- --seed 20260812 --frame-total 2438317323",
+      "values": { "draws": 3000, "eligible_payloads": 64, "observed_pathologies": 0, "producers": 16, "detector_controls": 7 }
+    },
+    {
+      "id": "e13",
+      "kind": "finite_model_and_selected_composition",
+      "source": "docs/research/EXPERIMENTS.md",
+      "anchor": "## E13 — Is the canonicalization kernel compositional? (Arm F)",
+      "command": "npx ts-node tools/experiments/e13KernelComposition.ts",
+      "values": { "finite_hops": 625, "finite_compositions": 390625, "real_forward_counterexamples": 2, "repairs_by_separation": 0 }
+    },
+    {
+      "id": "e16",
+      "kind": "curated_consequence_census",
+      "source": "docs/research/EXPERIMENTS.md",
+      "anchor": "## E16 — Does a deployed, named consumer distinguish a pair the canonicalizer collapses?",
+      "command": "npm run experiment:e16",
+      "values": { "engines": 4, "decision_split_cells": 8, "discriminator_holds": true },
+      "provenance_caveat": "The named engines are version-pinned third-party engines executed under author-supplied equality policies; the generated report records host as unrecorded-host."
+    }
+  ],
+  "figures": [
+    { "path": "docs/paper-next/figures/fig-model.tex", "finding_ids": ["e1", "e16"], "kind": "conceptual" },
+    { "path": "docs/paper-next/figures/fig-third-party-matrix.tex", "finding_ids": ["e11"], "kind": "generated_from_csv" },
+    { "path": "docs/paper-next/figures/fig-ecology-consequence.tex", "finding_ids": ["e12", "e16"], "kind": "generated_from_csv" },
+    { "path": "docs/paper-next/figures/fig-composition.tex", "finding_ids": ["e13"], "kind": "conceptual_with_recorded_counts" }
+  ],
+  "required_citation_keys": [
+    "bromme2026canonicalization",
+    "moller2024cross",
+    "rfc8785",
+    "rfc7493",
+    "w3c-vcdi-2025",
+    "rohlmann2023signature",
+    "you2025zip",
+    "dssev1",
+    "sirkkavaara2026vaara",
+    "ramananandro2019everparse"
+  ]
+}

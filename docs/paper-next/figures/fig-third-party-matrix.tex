@@ -1,0 +1,24 @@
+% Generated from figures/data/third-party-kernel.csv, extracted from E11's recorded 31-class census.
+\begin{tikzpicture}
+\begin{axis}[
+  ybar stacked,
+  width=\columnwidth,
+  height=45mm,
+  ymin=0, ymax=13,
+  ylabel={classes},
+  symbolic x coords={Rust serde-json,Ruby JSON,CPython json,jq -S -c},
+  xtick=data,
+  x tick label style={rotate=18,anchor=east,font=\scriptsize},
+  legend style={at={(0.5,1.02)},anchor=south,legend columns=2,font=\scriptsize},
+  enlarge x limits=0.14,
+  bar width=8pt,
+  axis line style={draw=black!55},
+  tick style={draw=black!55}
+]
+\addplot+[fill=red!65,draw=none] table[x=arm,y=unintended_kernel,col sep=comma] {figures/data/third-party-kernel.csv};
+\addplot+[fill=orange!75,draw=none] table[x=arm,y=over_discrimination,col sep=comma] {figures/data/third-party-kernel.csv};
+\addplot+[fill=blue!45,draw=none] table[x=arm,y=fail_closed,col sep=comma] {figures/data/third-party-kernel.csv};
+\addplot+[fill=green!50!black,draw=none] table[x=arm,y=sound_by_rejection,col sep=comma] {figures/data/third-party-kernel.csv};
+\legend{unintended kernel,over-discrimination,fail-closed,sound by rejection}
+\end{axis}
+\end{tikzpicture}

@@ -1,0 +1,14 @@
+% Conceptual model. The labels are grounded by E1/E16; it contains no measured rate.
+\begin{tikzpicture}[font=\small, node distance=10mm and 12mm, >=Latex]
+  \node[draw, rounded corners, fill=blue!7, align=center, minimum width=27mm, minimum height=12mm] (a) {raw document $x$};
+  \node[draw, rounded corners, fill=blue!7, below=of a, align=center, minimum width=27mm, minimum height=12mm] (b) {raw document $y$};
+  \node[draw, rounded corners, fill=orange!12, right=of a.south east, xshift=7mm, yshift=-6mm, align=center, minimum width=34mm, minimum height=16mm] (c) {parse $\rightarrow$ canonicalize\\$C(x)=C(y)$};
+  \node[draw, rounded corners, fill=green!10, right=of c, align=center, minimum width=30mm, minimum height=16mm] (r) {one signed\\receipt identity};
+  \node[draw, rounded corners, fill=red!8, right=of r.north east, xshift=7mm, yshift=6mm, align=center, minimum width=31mm, minimum height=12mm] (p1) {consumer $p_1$\\same decision};
+  \node[draw, rounded corners, fill=red!8, right=of r.south east, xshift=7mm, yshift=-6mm, align=center, minimum width=31mm, minimum height=12mm] (p2) {consumer $p_2$\\different decisions};
+  \draw[->] (a.east) -- (c.north west);
+  \draw[->] (b.east) -- (c.south west);
+  \draw[->] (c) -- (r);
+  \draw[->] (r.north east) -- (p1.west);
+  \draw[->] (r.south east) -- (p2.west);
+\end{tikzpicture}

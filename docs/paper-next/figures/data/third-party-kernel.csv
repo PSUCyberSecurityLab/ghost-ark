@@ -1,0 +1,5 @@
+arm,unintended_kernel,over_discrimination,fail_closed,sound_by_rejection
+Rust serde-json,4,4,2,2
+Ruby JSON,4,3,2,2
+CPython json,4,3,1,2
+jq -S -c,4,5,0,1

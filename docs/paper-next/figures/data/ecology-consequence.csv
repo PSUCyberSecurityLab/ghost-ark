@@ -1,0 +1,3 @@
+measure,count,denominator,provenance,source
+selected pathology instances in Rekor eligible payloads,0,64,sampled eligible payload census,E12
+consumer decision-split cells,8,24,curated engine-pair census,E16

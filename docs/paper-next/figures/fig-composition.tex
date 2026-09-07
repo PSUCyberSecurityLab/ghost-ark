@@ -1,0 +1,9 @@
+% E13 supporting result: real configuration selected under a non-default permissive codec.
+\begin{tikzpicture}[font=\small, node distance=8mm, >=Latex]
+  \node[draw, rounded corners, fill=blue!7, align=center, text width=0.24\columnwidth, minimum height=17mm] (raw) {two raw inputs\\different intended values};
+  \node[draw, rounded corners, fill=orange!12, align=center, text width=0.24\columnwidth, minimum height=17mm, right=of raw] (up) {upstream normalization\\accepts and collapses};
+  \node[draw, rounded corners, fill=red!9, align=center, text width=0.24\columnwidth, minimum height=17mm, right=of up] (down) {downstream check\\cannot separate; it passes or refuses};
+  \draw[->] (raw) -- (up);
+  \draw[->] (up) -- (down);
+  \node[below=4mm of up, align=center, text width=0.72\columnwidth, font=\scriptsize] {E13's finite model found $\pnEThirteenRepairsBySeparation$ repairs by separation. Its $\pnEThirteenForward$ implementation counterexample cells require a non-default permissive codec; no all-default pair reproduced it.};
+\end{tikzpicture}
